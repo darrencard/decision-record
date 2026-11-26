@@ -1,6 +1,6 @@
 {
   "name": "decision-record",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Turn a Slack thread, meeting notes or a transcript into a decision record, append it to a decisions log, and list open decisions with days waiting and on whom. Nothing is marked decided without a named decider and their words from the source.",
   "author": { "name": "Dacard" }
 }

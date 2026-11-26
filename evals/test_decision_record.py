@@ -6,9 +6,13 @@ Fixtures are Acme, an invented company. Every person, figure and date is illustr
 from __future__ import annotations
 
 import contextlib
+import csv
 import io
 import json
+import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -237,6 +241,7 @@ class TestFormat(unittest.TestCase):
         text = (FIX / "sample_log.md").read_text(encoding="utf-8")
         recs = declog.parse_log(text)
         self.assertEqual(len(recs), 9)
+        self.assertEqual(recs[4].decide_by, "2026-12-02")
         again = declog.parse_log(declog.format_log(recs))
         self.assertEqual([r.to_dict() for r in recs], [r.to_dict() for r in again])
 
@@ -488,6 +493,119 @@ class TestRecordCli(unittest.TestCase):
         self.assertEqual(out["result"], "valid")
 
 
+# The Leader Report's decision format, pinned at its commit 366da9b: the columns intake.py
+# imports for decisions, the line draft.py writes on the decision slide, and how render.py
+# reads that line back into options. CI runs these; the full round trip below needs the
+# Leader Report checked out (LEADER_REPORT, or ~/product-engineering-update).
+LR_COLUMNS = ("ask", "options", "recommendation", "deadline")
+LR_LINE = re.compile(r"^Options: (?P<options>.+?)\. Deadline: (?P<deadline>.+?)\.$")
+LR_SPLIT = re.compile(r",? or ")
+LEADER_REPORT = Path(os.environ.get("LEADER_REPORT", Path.home() / "product-engineering-update")) / "skills" / "product-engineering-update" / "scripts"
+
+
+def lr_slide_line(row: dict) -> str:
+    """The line draft.py writes for one decision (draft.py, Drafter.decisions)."""
+    return f"Options: {row.get('options') or 'not stated'}. Deadline: {row.get('deadline') or 'not set'}."
+
+
+class TestLeaderReportExport(unittest.TestCase):
+    def setUp(self):
+        self.recs = declog.parse_log((FIX / "sample_log.md").read_text(encoding="utf-8"))
+        self.rows, self.problems = declog.leader_report_rows(self.recs, AS_OF)
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_open_decisions_only_oldest_first(self):
+        self.assertEqual(self.problems, [])
+        self.assertEqual([r["id"] for r in self.rows], ["D-0006", "D-0007", "D-0005", "D-0008"])
+        self.assertTrue(set(LR_COLUMNS) <= set(declog.LEADER_REPORT_COLUMNS))
+
+    def test_row_content(self):
+        by = {r["id"]: r for r in self.rows}
+        self.assertEqual(by["D-0005"]["options"], "Keep day 7 for everyone or Per-trade setting, day 7 default")
+        self.assertEqual(by["D-0005"]["deadline"], "2026-12-02")
+        self.assertEqual(by["D-0005"]["owner"], "Raj Mehta")
+        self.assertEqual(by["D-0005"]["recommendation"], "Sam Whitfield recommends the per-trade setting. Waiting on Raj Mehta, 8 days open.")
+        self.assertEqual(by["D-0006"]["recommendation"], "No recommendation recorded. Nobody is named to make this call, 29 days open, escalated.")
+        self.assertIn("past the usual 8 days to decide", by["D-0007"]["recommendation"])
+        self.assertIsNone(by["D-0008"]["deadline"])
+
+    def test_slide_line_parses_back_into_the_same_options(self):
+        for row in self.rows:
+            m = LR_LINE.match(lr_slide_line(row))
+            self.assertIsNotNone(m, row["id"])
+            rec = next(r for r in self.recs if r.id == row["id"])
+            if rec.options:
+                self.assertEqual([o.strip() for o in LR_SPLIT.split(m["options"])], rec.options)
+
+    def test_an_option_with_or_is_refused(self):
+        r = next(r for r in self.recs if r.id == "D-0005")
+        r.options = ["Day 3 or day 5", "Day 7"]
+        _, problems = declog.leader_report_rows(self.recs, AS_OF)
+        self.assertEqual([f.rule for f in problems], ["option-splits-on-the-slide"])
+
+    def test_markdown_table_reads_as_the_leader_report_reads_it(self):
+        out = self.tmp / "decisions.md"
+        code, _ = run_cli(open_decisions.main, ["--log", str(FIX / "sample_log.md"), "--as-of", "2026-11-26", "--leader-report", str(out)])
+        self.assertEqual(code, 0)
+        lines = [ln for ln in out.read_text(encoding="utf-8").splitlines() if ln.startswith("|")]
+        header = [c.strip() for c in lines[0].strip("|").split("|")]
+        self.assertEqual(tuple(header[:4]), LR_COLUMNS)
+        self.assertEqual(len(lines), 2 + 4)
+
+    def test_csv_export(self):
+        out = self.tmp / "decisions.csv"
+        code, _ = run_cli(open_decisions.main, ["--log", str(FIX / "sample_log.md"), "--as-of", "2026-11-26", "--leader-report", str(out)])
+        self.assertEqual(code, 0)
+        rows = list(csv.DictReader(io.StringIO(out.read_text(encoding="utf-8"))))
+        self.assertEqual([r["id"] for r in rows], ["D-0006", "D-0007", "D-0005", "D-0008"])
+        self.assertEqual(rows[2]["deadline"], "2026-12-02")
+
+    def test_export_refused_for_an_invalid_log(self):
+        bad = self.tmp / "bad.md"
+        bad.write_text(declog.LOG_HEADER + "\n## D-0001: x\n\n- Status: decided\n- Decided by: the team\n", encoding="utf-8")
+        out = self.tmp / "decisions.md"
+        with contextlib.redirect_stderr(io.StringIO()):
+            code, _ = run_cli(open_decisions.main, ["--log", str(bad), "--as-of", "2026-11-26", "--leader-report", str(out)])
+        self.assertEqual(code, 2)
+        self.assertFalse(out.exists())
+
+    @unittest.skipUnless((LEADER_REPORT / "validate.py").exists(), "Leader Report not checked out; set LEADER_REPORT")
+    def test_round_trip_through_the_leader_report(self):
+        """Export, import with intake.py, draft and validate with the Leader Report's own scripts, unchanged."""
+        run = self.tmp / "run"
+        exported = self.tmp / "decisions.md"
+        run_cli(open_decisions.main, ["--log", str(FIX / "sample_log.md"), "--as-of", "2026-11-26", "--leader-report", str(exported)])
+        answers = ["--run", str(run), "--company", "Acme", "--period-label", "Q4 2026", "--period-start", "2026-10-01", "--period-end", "2026-12-31"]
+        answers += ["--as-of", "2026-11-26", "--gap-owner", "Maya Ortiz", "--gap-due", "2026-12-10", "--no-ask"]
+
+        def lr(script, *args):
+            done = subprocess.run([sys.executable, "-B", str(LEADER_REPORT / script), *args], capture_output=True, text=True, timeout=120)  # noqa: S603
+            self.assertEqual(done.returncode, 0, f"{script}: {done.stdout}{done.stderr}")
+            return done.stdout
+
+        lr("run.py", *answers)
+        lr("intake.py", "import", str(run / "intake.json"), "--decisions", str(exported))
+        lr("run.py", *answers)
+        report = json.loads(lr("validate.py", str(run / "deck.json"), "--json"))
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["errors"], [])
+        deck = json.loads((run / "deck.json").read_text(encoding="utf-8"))
+        slide = next(s for s in deck["slides"] if s.get("id") == "18")
+        self.assertEqual(slide["title"], "4 decisions for you.")
+        cards = slide["blocks"][0]["items"]
+        self.assertEqual([c["title"] for c in cards], [r["ask"] for r in self.rows])
+        invoice = cards[2]
+        self.assertEqual(invoice["body"][0], "Sam Whitfield recommends the per-trade setting. Waiting on Raj Mehta, 8 days open.")
+        m = LR_LINE.match(invoice["body"][1]["p"])
+        self.assertEqual(LR_SPLIT.split(m["options"]), ["Keep day 7 for everyone", "Per-trade setting, day 7 default"])
+        self.assertEqual(m["deadline"], "2026-12-02")
+        html = (run / "update.html").read_text(encoding="utf-8")
+        self.assertIn("Per-trade setting, day 7 default", html)
+
+
 class TestRepoHygiene(unittest.TestCase):
     # Built from code points so this file does not hold the characters it bans.
     BANNED = [chr(0x2014), "AI-powered", "unlock", "supercharge", "seamless", "robust", "get started"]
@@ -506,8 +624,8 @@ class TestRepoHygiene(unittest.TestCase):
     def test_versions_agree(self):
         plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         skill = (ROOT / "skills" / "decision-record" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertEqual(plugin["version"], "0.1.0")
-        self.assertIn('version: "0.1.0"', skill)
+        self.assertEqual(plugin["version"], "0.2.0")
+        self.assertIn('version: "0.2.0"', skill)
 
 
 if __name__ == "__main__":

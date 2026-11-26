@@ -39,6 +39,8 @@ FIELDS: tuple[tuple[str, str], ...] = (
     ("Assumptions", "assumptions"),
     ("Opened", "opened"),
     ("Waiting on", "waiting_on"),
+    ("Decide by", "decide_by"),
+    ("Recommendation", "recommendation"),
     ("Source", "source"),
     ("Evidence", "evidence"),
     ("Outcome", "outcome"),
@@ -48,7 +50,7 @@ FIELDS: tuple[tuple[str, str], ...] = (
     ("Notes", "notes"),
 )
 LABEL_TO_ATTR = {label.lower(): attr for label, attr in FIELDS}
-DATE_FIELDS = ("date", "review_by", "opened", "outcome_date")
+DATE_FIELDS = ("date", "review_by", "opened", "outcome_date", "decide_by")
 LIST_ATTRS = ("options", "assumptions")
 # Below these counts a median or a rate is noise, so the reads say so instead of printing one.
 MIN_HISTORY_FOR_MEDIAN = 3
@@ -94,6 +96,8 @@ class Record:
     assumptions: list[str] = field(default_factory=list)
     opened: str | None = None
     waiting_on: str | None = None
+    decide_by: str | None = None
+    recommendation: str | None = None
     source: str | None = None
     evidence: str | None = None
     outcome: str | None = None
@@ -388,6 +392,9 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
     if r.status == "open":
         if r.decided_by:
             err("open-with-decider", "An open record has a decider. Mark it decided, or clear the decider.")
+        db = parse_date(r.decide_by)
+        if db and db < as_of:
+            warn("decide-by-passed", f"The decide-by date {r.decide_by} has passed and the call is still open.")
         if not r.opened:
             warn("no-opened-date", "No opened date, so this cannot age. No age is made up.")
         if not r.waiting_on:
@@ -612,3 +619,71 @@ def follow_through(records: list[Record], as_of: date) -> dict:
         "stalled_rows": [{"id": r.id, "title": r.title or r.decision, "owner": r.owner, "outcome_date": r.outcome_date} for r in stalled],
         "review_due": review_due,
     }
+
+
+# ------------------------------------------------- the Leader Report decision format
+
+# The Product & Technology Leader Report reads decisions from a table with these columns
+# (intake.py IMPORTS["decisions"]) and draws each one on its decision slide as
+# "Options: A or B. Deadline: D." (draft.py), which render.py splits back into options on
+# ", or" and " or ". Pinned to the Leader Report at commit 366da9b. Extra columns are ignored
+# by its reader, so owner, days waiting, id and source travel with each row for the ledger.
+LEADER_REPORT_COLUMNS = ("ask", "options", "recommendation", "deadline")
+LEADER_REPORT_EXTRA = ("owner", "days_waiting", "id", "source")
+OPTION_SPLIT = re.compile(r",? or ")
+
+
+def leader_report_rows(records: list[Record], as_of: date, expected_days: float | None = None, escalate_after: int = 14) -> tuple[list[dict], list[Finding]]:
+    """Open decisions as rows in the Leader Report's decision format, oldest first.
+
+    Refuses (returns findings) when the Leader Report would misread a row: an option that
+    holds the word "or", which the slide would split into two options."""
+    by_id = {r.id: r for r in records}
+    q = open_queue(records, as_of, expected_days, escalate_after)
+    rows, problems = [], []
+    for item in q["items"]:
+        r = by_id[item["id"]]
+        options = [o.rstrip(". ") for o in r.options]
+        for o in options:
+            if OPTION_SPLIT.search(f" {o} "):
+                msg = f"The option {o!r} contains the word 'or', so the decision slide would show it as two options. Reword it."
+                problems.append(Finding("option-splits-on-the-slide", "error", r.id, msg))
+        wait = f"Waiting on {item['waiting_on']}" if item["waiting_on"] else "Nobody is named to make this call"
+        if item["days_waiting"] is not None:
+            wait += f", {item['days_waiting']} day{'' if item['days_waiting'] == 1 else 's'} open"
+        if item["escalated"]:
+            wait += ", escalated"
+        elif item["past_due"]:
+            wait += f", past the usual {q['usual_days_to_decide']:g} days to decide"
+        wait += "."
+        rec = f"{r.recommendation.rstrip('.')}. {wait}" if r.recommendation else f"No recommendation recorded. {wait}"
+        rows.append(
+            {
+                "ask": r.title or r.decision,
+                "options": " or ".join(options) or None,
+                "recommendation": rec,
+                "deadline": r.decide_by,
+                "owner": item["waiting_on"],
+                "days_waiting": item["days_waiting"],
+                "id": r.id,
+                "source": r.source,
+            }
+        )
+    return rows, problems
+
+
+def leader_report_markdown(rows: list[dict], as_of: date) -> str:
+    cols = LEADER_REPORT_COLUMNS + LEADER_REPORT_EXTRA
+
+    def cell(v: object) -> str:
+        return "" if v is None else str(v).replace("|", "\\|")
+
+    out = [
+        f"Open decisions as of {as_of.isoformat()}, from the decision log. Import with the Leader Report: "
+        "intake.py import run/intake.json --decisions this-file.md",
+        "",
+        "| " + " | ".join(cols) + " |",
+        "|" + "---|" * len(cols),
+    ]
+    out += ["| " + " | ".join(cell(r[c]) for c in cols) + " |" for r in rows]
+    return "\n".join(out) + "\n"

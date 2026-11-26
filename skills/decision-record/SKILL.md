@@ -4,7 +4,7 @@ description: Turns a Slack thread, meeting notes or a call transcript into a dec
 license: MIT. See LICENSE in the repository root.
 metadata:
   author: Dacard
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # Decision record
@@ -51,7 +51,8 @@ Work from the skill's root. Ask the user for today's date if you do not know it:
    - `success_signal`: the result that would show it worked, with a metric, a threshold and a date. Take it from the source; if nobody said, leave it out and ask the user for one before writing. Without it, the review has nothing to test and the record can never be `landed`.
    - `assumptions`: what the call rests on, one per item, if the source says. A review tests these.
    - `opened`: when the question was first raised. This is what lets the log age a call.
-   - `waiting_on`: for an open record, the one person the call needs.
+   - `waiting_on`: for an open record, the one person the call needs. `decide_by`: the date the call is needed by, if the source gives one.
+   - `recommendation`: who recommends what, if someone in the source does, for example "Sam Whitfield recommends the per-trade setting". Never your own.
    - `source`: where the text came from (channel, meeting, date). `evidence`: the decider's line, copied word for word. When the line has a dated timestamp or sits under a `Date:` header, `date` must match it.
 4. **Check.** `python3 scripts/record.py check --draft run/draft.json --source run/source.txt --as-of YYYY-MM-DD --log decisions.md`. Fix every error from the source. Report each warning to the user (no owner, no review date, reversibility unknown, a one-way door with no review date).
 5. **Confirm.** Show the user the record as it will be written, with any warnings, and ask for a yes before writing.
@@ -74,6 +75,16 @@ A thread with several decisions gets one draft and one append per decision. A th
 - **Small numbers stay counts.** The usual time to decide needs 3 decided records with an opened date; the follow-through rate needs 5 outcomes read. Below that the script prints counts and says why there is no median or rate. Report it that way: do not work one out.
 
 Lead with the headline line the script prints. Then name each past-due or escalated call and the person it waits on. Use only the words landed, watch and stalled for outcomes.
+
+## Feed the Leader Report's decision slide
+
+The Product & Technology Leader Report shows open decisions on its decision slide. This log is the source for it, so decisions are kept once, here:
+
+```bash
+python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --leader-report run/decisions.md
+```
+
+It writes the open decisions, oldest first, as the table the Leader Report imports (`ask`, `options`, `recommendation`, `deadline`, plus `owner`, `days_waiting`, `id` and `source`). Then, in the Leader Report: `python3 scripts/intake.py import run/intake.json --decisions run/decisions.md` and run it as usual. The recommendation column carries any recorded recommendation and who the call waits on, for how long. A deadline that has passed shows on the report's first slide. The export refuses an option that holds the word "or" (the slide would split it in two) and an invalid log.
 
 ## ADR files
 

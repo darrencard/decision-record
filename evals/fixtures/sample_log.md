@@ -94,6 +94,8 @@ Illustrative sample. Acme is an invented company and every person, figure and da
   - Per-trade setting, day 7 default
 - Opened: 2026-11-18
 - Waiting on: Raj Mehta
+- Decide by: 2026-12-02
+- Recommendation: Sam Whitfield recommends the per-trade setting
 - Source: Meeting notes, invoice chasing cadence (illustrative)
 - Evidence: Raj to come back with the cash numbers and we pick this up next week.
 
@@ -106,8 +108,12 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 ## D-0007: Which squad owns the quote accuracy metric?
 
 - Status: open
+- Options considered:
+  - Quotes squad
+  - Data platform squad
 - Opened: 2026-11-13
 - Waiting on: Lena Brandt
+- Decide by: 2026-11-20
 - Source: Squad leads sync (illustrative)
 
 ## D-0008: Do we charge for the assistant on the Starter plan?

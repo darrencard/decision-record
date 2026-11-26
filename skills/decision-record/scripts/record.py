@@ -127,6 +127,7 @@ def cmd_decide(a) -> int:
                 setattr(r, attr, declog.clean(v).lower() if attr == "reversible" else declog.clean(v))
         r.decision = r.decision or r.title
         r.waiting_on = None
+        r.decide_by = None
         return None
 
     return update(a, "decide", change)

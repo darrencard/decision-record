@@ -53,6 +53,7 @@ Your first record comes back from the first thread you paste. Then ask "which de
 | Open decisions | Days waiting, on whom, past due against the log's own median time to decide | The stuck calls and the people they wait on, oldest first |
 | Follow-through | Landed, watch and stalled on past calls; a rate only once 5 outcomes are read | Whether the calls you made turned into results, without a rate built on three data points |
 | Append-only log | One Markdown file; new records go on the end, old ones stay byte for byte; `record.py validate` runs in CI | A record your team can read, diff and review in a pull request |
+| Leader Report feed | `open_decisions.py --leader-report` writes open decisions as the table the Leader Report's decision slide imports | Decisions are kept once; the board deck shows the same calls, owners and deadlines as the log |
 | ADR export | `record.py adr` writes one ADR file per record into `docs/adr/` | Fits the way engineering teams already keep decisions |
 | Local | Python standard library only, no network calls, MIT licensed | Thread content never leaves your machine |
 
@@ -79,7 +80,7 @@ Follow-through: no rate yet (3 outcome(s) read; 5 are needed before a rate means
 |---|---|
 | `scan.py` | Lists speakers, dates and the lines that sound like a call made, deferred or asked |
 | `record.py` | `check`, `append`, `decide`, `drop`, `outcome`, `validate`, `adr`. Exit 2 when a rule refuses, and nothing is written |
-| `open_decisions.py` | Open decisions with days waiting and on whom, and follow-through |
+| `open_decisions.py` | Open decisions with days waiting and on whom, and follow-through. `--leader-report FILE` writes them for the Leader Report's decision slide |
 | `declog.py` | The log format, the validation rules and both reads |
 
 To block a hand-edited record in review, add one step to CI:
@@ -92,6 +93,6 @@ The rules are listed in [SKILL.md](skills/decision-record/SKILL.md) and the log 
 
 ## Status
 
-Version 0.1.0. Tested on the Acme fixtures only, not yet on a real team's threads. Python 3.9 or later. Tests: `python3 -m unittest discover -s evals -v`.
+Version 0.2.0. Tested on the Acme fixtures only, not yet on a real team's threads. Python 3.9 or later. Tests: `python3 -m unittest discover -s evals -v`.
 
 MIT licensed. Made by [Dacard](https://www.dacard.ai).

@@ -3,6 +3,7 @@
     python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD
     python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --json
     python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --usual-days 10
+    python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --leader-report run/decisions.md
 
 Every number comes from dates and counts in the log. An open decision with no
 opened date has no age: none is made up. The usual time to decide is the median
@@ -12,6 +13,8 @@ of this log's own decided records, unless --usual-days sets it.
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import sys
 from pathlib import Path
@@ -62,6 +65,18 @@ def markdown(out: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def write_leader_report(path: Path, rows: list[dict], as_of) -> None:
+    if path.suffix.lower() == ".csv":
+        cols = declog.LEADER_REPORT_COLUMNS + declog.LEADER_REPORT_EXTRA
+        buf = io.StringIO()
+        w = csv.DictWriter(buf, fieldnames=cols, lineterminator="\n")
+        w.writeheader()
+        w.writerows({c: ("" if r[c] is None else r[c]) for c in cols} for r in rows)
+        path.write_text(buf.getvalue(), encoding="utf-8")
+    else:
+        path.write_text(declog.leader_report_markdown(rows, as_of), encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--log", type=Path, required=True)
@@ -69,12 +84,27 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--usual-days", type=float, help="Days a decision should take. Default: the log's own median.")
     p.add_argument("--escalate-after", type=int, default=14, help="Days past due, with nobody named, before a call escalates.")
     p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "--leader-report",
+        type=Path,
+        metavar="FILE",
+        help="Also write the open decisions in the Leader Report's decision format (.md or .csv), for intake.py import --decisions.",
+    )
     a = p.parse_args(argv)
     d = declog.parse_date(a.as_of)
     if d is None:
         raise SystemExit(f"--as-of must be YYYY-MM-DD; got {a.as_of!r}")
     records = declog.parse_log(a.log.read_text(encoding="utf-8")) if a.log.exists() else []
     out = build(records, d, a.usual_days, a.escalate_after)
+    if a.leader_report:
+        rows, problems = declog.leader_report_rows(records, d, a.usual_days, a.escalate_after)
+        if problems or out["log_errors"]:
+            for f in problems:
+                print(f"refused: {f.record} {f.rule}: {f.message}", file=sys.stderr)
+            if out["log_errors"]:
+                print(f"refused: the log has {len(out['log_errors'])} invalid record(s). Run record.py validate.", file=sys.stderr)
+            return 2
+        write_leader_report(a.leader_report, rows, d)
     print(json.dumps(out, indent=2, ensure_ascii=False) if a.json else markdown(out), end="" if not a.json else "\n")
     return 0
 

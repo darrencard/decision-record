@@ -43,6 +43,8 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 | Assumptions | one sub-bullet per assumption | no |
 | Opened | YYYY-MM-DD | no (without it a call cannot age) |
 | Waiting on | one named person | open (warning) |
+| Decide by | YYYY-MM-DD, the date the call is needed by; becomes the Leader Report deadline | no (warning once passed) |
+| Recommendation | who recommends what, from the source | no |
 | Source | where the text came from | no |
 | Evidence | the decider's words, verbatim; Date must match the line's date when the source dates it | decided |
 | Outcome | landed, watch, stalled | no; decided only |
