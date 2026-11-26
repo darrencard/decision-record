@@ -35,7 +35,9 @@ def markdown(out: dict) -> str:
     if q["usual_days_to_decide"] is not None:
         lines += [f"Usual time to decide: {q['usual_days_to_decide']:g} days ({q['usual_basis']}).", ""]
     else:
-        lines += ["Usual time to decide: not known yet (no decided record has an opened date), so nothing is marked past due.", ""]
+        lines += [f"Usual time to decide: not known ({q['usual_basis']}), so nothing is marked past due.", ""]
+    if q["counts"]["escalated"]:
+        lines += [f"Escalate: past due by more than {q['escalate_after_days']} days with nobody named to make the call.", ""]
     if q["items"]:
         lines += ["| Id | Decision needed | Days waiting | Waiting on | Flag |", "|---|---|---|---|---|"]
         for i in q["items"]:
@@ -44,13 +46,17 @@ def markdown(out: dict) -> str:
             lines.append(f"| {i['id']} | {i['title']} | {days} | {i['waiting_on'] or 'nobody named'} | {flag} |")
         lines.append("")
     lines += [f"## Follow-through as of {ft['as_of']}", ""]
-    rate = "not known yet" if ft["follow_through_rate_pct"] is None else f"{ft['follow_through_rate_pct']}%"
+    rate = "no rate yet" if ft["follow_through_rate_pct"] is None else f"{ft['follow_through_rate_pct']}%"
     counts = f"landed {ft['landed']} · watch {ft['watch']} · stalled {ft['stalled']} · not yet read {ft['not_yet_read']}"
     lines.append(f"Follow-through: {rate} ({ft['rate_basis']}). {counts}.")
     if ft["stalled_rows"]:
         lines += ["", "Stalled: " + "; ".join(f"{r['id']} {r['title']} (owner: {r['owner'] or 'none'})" for r in ft["stalled_rows"])]
-    if ft["review_due"]:
-        lines += ["", "Review due: " + "; ".join(f"{r['id']} {r['title']} ({r['days_overdue']} days past {r['review_by']})" for r in ft["review_due"])]
+    for r in ft["review_due"]:
+        lines += ["", f"Review due: {r['id']} {r['title']}, {r['days_overdue']} days past {r['review_by']} (owner: {r['owner'] or 'none'})."]
+        lines.append(f"- Test against: {r['success_signal'] or 'no success signal was recorded'}")
+        lines.extend(f"- Assumption to check: {x}" for x in r["assumptions"])
+    if ft["without_success_signal"]:
+        lines += ["", f"{ft['without_success_signal']} decided record(s) have no success signal, so their review has nothing to test."]
     if out["log_errors"]:
         lines += ["", f"The log has {len(out['log_errors'])} invalid record(s). Run record.py validate."]
     return "\n".join(lines) + "\n"

@@ -17,6 +17,10 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 - Owner: Tom Okafor
 - Review by: 2026-12-15
 - Reversible: yes
+- Success signal: Wrong-line-item complaints fall below 5 a month by 2026-12-15 (illustrative), with quote send time no more than 1 day slower.
+- Assumptions:
+  - Most wrong line items are caught when the tradesperson reads the draft
+  - Approving each draft adds under a minute per quote
 - Opened: 2026-11-10
 - Source: Slack #quotes-squad thread, 2026-11-10 to 2026-11-12 (illustrative)
 - Evidence: My call: we go with approve before send for every drafted quote.
@@ -35,10 +39,12 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 | Owner | who carries it out | no (warning) |
 | Review by | YYYY-MM-DD, not before Date | no (warning) |
 | Reversible | yes, no, unknown | no (warning) |
+| Success signal | the result that would show it worked: metric, threshold, date | no (warning); required for Outcome landed |
+| Assumptions | one sub-bullet per assumption | no |
 | Opened | YYYY-MM-DD | no (without it a call cannot age) |
 | Waiting on | one named person | open (warning) |
 | Source | where the text came from | no |
-| Evidence | the decider's words, verbatim | decided |
+| Evidence | the decider's words, verbatim; Date must match the line's date when the source dates it | decided |
 | Outcome | landed, watch, stalled | no; decided only |
 | Outcome date | YYYY-MM-DD | with Outcome |
 | Outcome evidence | the result and where it came from | with Outcome landed |

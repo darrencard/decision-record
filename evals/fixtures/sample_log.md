@@ -17,6 +17,7 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 - Owner: Tom Okafor
 - Review by: 2026-10-20
 - Reversible: yes
+- Success signal: Quote edit rate below 25% within six weeks (illustrative)
 - Opened: 2026-09-01
 - Source: Slack #quotes-squad (illustrative)
 - Evidence: Maya Ortiz: Price book it is.
@@ -37,6 +38,7 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 - Owner: Sam Whitfield
 - Review by: 2026-11-01
 - Reversible: yes
+- Success signal: Paid-within-14-days rate above 65% by 2026-11-01 (illustrative)
 - Opened: 2026-09-15
 - Source: Finance and product sync notes (illustrative)
 - Evidence: Raj Mehta: Let's go with SMS too.
@@ -57,6 +59,7 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 - Owner: Lena Brandt
 - Review by: 2026-11-10
 - Reversible: no
+- Success signal: Audit requests answered in under 1 day (illustrative)
 - Opened: 2026-10-01
 - Source: Data review meeting (illustrative)
 - Evidence: Priya Raman: Seven years, decided.
@@ -74,6 +77,7 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 - Owner: Sam Whitfield
 - Review by: 2026-11-20
 - Reversible: yes
+- Success signal: Reply rate to chase messages up 5 points in four weeks (illustrative)
 - Opened: 2026-10-20
 - Source: Slack #invoices-squad (illustrative)
 - Evidence: Maya Ortiz: Go ahead with their own tone.

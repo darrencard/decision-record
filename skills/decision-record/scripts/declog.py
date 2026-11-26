@@ -35,6 +35,8 @@ FIELDS: tuple[tuple[str, str], ...] = (
     ("Owner", "owner"),
     ("Review by", "review_by"),
     ("Reversible", "reversible"),
+    ("Success signal", "success_signal"),
+    ("Assumptions", "assumptions"),
     ("Opened", "opened"),
     ("Waiting on", "waiting_on"),
     ("Source", "source"),
@@ -47,6 +49,10 @@ FIELDS: tuple[tuple[str, str], ...] = (
 )
 LABEL_TO_ATTR = {label.lower(): attr for label, attr in FIELDS}
 DATE_FIELDS = ("date", "review_by", "opened", "outcome_date")
+LIST_ATTRS = ("options", "assumptions")
+# Below these counts a median or a rate is noise, so the reads say so instead of printing one.
+MIN_HISTORY_FOR_MEDIAN = 3
+MIN_OUTCOMES_FOR_RATE = 5
 
 # Words that name a group, a role or nobody. A record whose decider is only these
 # words has no named decider, so it cannot be marked decided.
@@ -84,6 +90,8 @@ class Record:
     owner: str | None = None
     review_by: str | None = None
     reversible: str | None = None
+    success_signal: str | None = None
+    assumptions: list[str] = field(default_factory=list)
     opened: str | None = None
     waiting_on: str | None = None
     source: str | None = None
@@ -167,9 +175,9 @@ def record_from_dict(d: dict) -> Record:
         if key not in d:
             continue
         v = d[key]
-        if key == "options":
+        if key in LIST_ATTRS:
             items = v if isinstance(v, list) else ([v] if v else [])
-            r.options = [c for c in (clean(x) for x in items) if c]
+            setattr(r, key, [c for c in (clean(x) for x in items) if c])
         else:
             setattr(r, key, clean(v))
     for key in ("status", "reversible", "outcome"):
@@ -182,10 +190,11 @@ def record_from_dict(d: dict) -> Record:
 def format_record(r: Record) -> str:
     lines = [f"## {r.id}: {clean(r.title) or ''}".rstrip(), ""]
     for label, attr in FIELDS:
-        if attr == "options":
-            if r.options:
+        if attr in LIST_ATTRS:
+            items = getattr(r, attr)
+            if items:
                 lines.append(f"- {label}:")
-                lines.extend(f"  - {clean(o)}" for o in r.options)
+                lines.extend(f"  - {clean(o)}" for o in items)
             continue
         v = clean(getattr(r, attr))
         if v:
@@ -200,32 +209,32 @@ def format_log(records: list[Record]) -> str:
 def parse_log(text: str) -> list[Record]:
     records: list[Record] = []
     cur: Record | None = None
-    in_options = False
+    in_list: str | None = None
     for raw in text.splitlines():
         line = raw.rstrip()
         m = HEADING_RE.match(line)
         if m:
             cur = Record(id=m.group(1), title=m.group(2).strip())
             records.append(cur)
-            in_options = False
+            in_list = None
             continue
         if cur is None:
             continue
         sub = SUBITEM_RE.match(line)
-        if sub and in_options:
+        if sub and in_list:
             item = clean(sub.group(1))
             if item:
-                cur.options.append(item)
+                getattr(cur, in_list).append(item)
             continue
         fm = FIELD_RE.match(line)
         if fm:
             attr = LABEL_TO_ATTR.get(fm.group(1).strip().lower())
-            in_options = attr == "options"
-            if attr and attr != "options":
+            in_list = attr if attr in LIST_ATTRS else None
+            if attr and attr not in LIST_ATTRS:
                 setattr(cur, attr, clean(fm.group(2)))
             continue
         if line.strip():
-            in_options = False
+            in_list = None
     return records
 
 
@@ -248,25 +257,36 @@ SPEAKER_PATTERNS = (
     re.compile(r"^(?P<who>[A-Z][A-Za-z'\-]+(?: [A-Z][A-Za-z'\-]+){0,3}):\s+(?P<text>.+)$"),
 )
 DATE_IN_TEXT = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
+DATE_HEADER = re.compile(r"^(?:date|meeting date|when)\s*:\s*(20\d{2}-\d{2}-\d{2})\b", re.IGNORECASE)
 
 
 def parse_source(text: str) -> list[dict]:
-    """Split a thread, notes or transcript into utterances: line, speaker, text."""
+    """Split a thread, notes or transcript into utterances: line, speaker, text, date.
+
+    The date is the one in the line's own timestamp, else the last `Date: YYYY-MM-DD`
+    header above it, else None. It is never guessed."""
     out = []
+    header_date: str | None = None
     for i, raw in enumerate(text.splitlines(), start=1):
         line = raw.strip()
         if not line:
             continue
+        hm = DATE_HEADER.match(line)
+        if hm:
+            header_date = hm.group(1)
         hit = None
         for pat in SPEAKER_PATTERNS:
             m = pat.match(line)
             if m:
                 hit = m
                 break
+        ts = hit.groupdict().get("ts") if hit else None
+        ts_date = DATE_IN_TEXT.search(ts or "")
+        when = ts_date.group(1) if ts_date else header_date
         if hit:
-            out.append({"line": i, "speaker": clean(hit.group("who")), "text": clean(hit.group("text")) or ""})
+            out.append({"line": i, "speaker": clean(hit.group("who")), "text": clean(hit.group("text")) or "", "date": when})
         else:
-            out.append({"line": i, "speaker": None, "text": clean(line) or ""})
+            out.append({"line": i, "speaker": None, "text": clean(line) or "", "date": when})
     return out
 
 
@@ -280,7 +300,10 @@ def speakers(utterances: list[dict]) -> list[str]:
 
 
 def base_name(name: str | None) -> str:
-    return norm_for_match(re.sub(r"\s*\(.*?\)\s*", " ", name or ""))
+    """A name for matching: no role in brackets, and a Slack handle such as
+    '@maya.ortiz' or 'maya_ortiz' reads as 'maya ortiz'."""
+    n = re.sub(r"\s*\(.*?\)\s*", " ", name or "").strip().lstrip("@")
+    return norm_for_match(re.sub(r"[._]+", " ", n))
 
 
 def find_quote(quote: str, utterances: list[dict]) -> dict | None:
@@ -356,6 +379,10 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
             warn("reversibility-unknown", "Nobody said whether this can be undone.")
         if r.reversible == "no" and not r.review_by:
             warn("one-way-door-no-review", "A decision that cannot be undone has no review date.")
+        if r.reversible == "no" and not r.success_signal:
+            err("one-way-door-no-signal", "A decision that cannot be undone needs a success signal: say what result would show it worked.")
+        if not r.success_signal:
+            warn("no-success-signal", "No success signal: nothing says what result would show this worked, so the review has nothing to test.")
         if len(r.options) < 2:
             warn("one-option", "Fewer than two options are recorded, so the record cannot show what was turned down.")
     if r.status == "open":
@@ -375,6 +402,8 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
             err("outcome-invalid", f"Outcome must be landed, watch or stalled; got {r.outcome!r}.")
         if r.status != "decided":
             err("outcome-on-undecided", "Only a decided record has an outcome.")
+        if r.outcome == "landed" and not r.success_signal:
+            err("landed-without-signal", "Landed needs a success signal to have landed against. Add what result was expected, or read it as watch.")
         if r.outcome == "landed" and not r.outcome_evidence:
             err("landed-without-evidence", "Landed needs evidence of the result. Without it, the most it can say is watch.")
         if not r.outcome_date:
@@ -391,7 +420,9 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
             hit = find_quote(r.evidence, utt)
             if hit is None:
                 err("evidence-not-in-source", "The evidence quote is not in the source, word for word.")
-            elif r.status == "decided" and r.decided_by and hit["speaker"] and base_name(hit["speaker"]) != base_name(r.decided_by):
+            elif r.status == "decided" and r.date and hit.get("date") and hit["date"] != r.date:
+                err("date-not-evidence-date", f"The evidence line is dated {hit['date']} in the source, but the record says {r.date}.")
+            if hit and r.status == "decided" and r.decided_by and hit["speaker"] and base_name(hit["speaker"]) != base_name(r.decided_by):
                 warn("evidence-from-someone-else", f"The evidence line was said by {hit['speaker']}, not {r.decided_by}. Check they made the call.")
         if r.status == "decided" and r.decided_by and is_named_person(r.decided_by):
             who = base_name(r.decided_by)
@@ -454,8 +485,14 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
     `escalate_after` further days and nobody is named to make it.
     """
     history = days_to_decide(records)
-    usual = expected_days if expected_days is not None else median([float(x) for x in history])
-    basis = "set by the user" if expected_days is not None else (f"median of {len(history)} decided records" if history else None)
+    enough = len(history) >= MIN_HISTORY_FOR_MEDIAN
+    if expected_days is not None:
+        usual, basis = expected_days, "set by the user"
+    elif enough:
+        usual, basis = median([float(x) for x in history]), f"median of {len(history)} decided records"
+    else:
+        usual = None
+        basis = f"only {len(history)} decided record(s) with an opened date; {MIN_HISTORY_FOR_MEDIAN} are needed for a median, or set --usual-days"
     items = []
     for r in records:
         if r.status != "open":
@@ -483,6 +520,7 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
         "as_of": as_of.isoformat(),
         "usual_days_to_decide": usual,
         "usual_basis": basis,
+        "escalate_after_days": escalate_after,
         "items": items,
         "counts": {
             "open": len(items),
@@ -538,7 +576,17 @@ def follow_through(records: list[Record], as_of: date) -> dict:
     for r in decided:
         rb = parse_date(r.review_by)
         if r.outcome is None and rb and rb <= as_of:
-            review_due.append({"id": r.id, "title": r.title or r.decision, "review_by": r.review_by, "days_overdue": (as_of - rb).days, "owner": r.owner})
+            review_due.append(
+                {
+                    "id": r.id,
+                    "title": r.title or r.decision,
+                    "review_by": r.review_by,
+                    "days_overdue": (as_of - rb).days,
+                    "owner": r.owner,
+                    "success_signal": r.success_signal,
+                    "assumptions": list(r.assumptions),
+                }
+            )
     review_due.sort(key=lambda x: (-x["days_overdue"], x["id"]))
     history = days_to_decide(records)
     return {
@@ -549,10 +597,15 @@ def follow_through(records: list[Record], as_of: date) -> dict:
         "landed": len(landed),
         "watch": len(watch),
         "stalled": len(stalled),
-        "follow_through_rate_pct": round(len(landed) / len(read) * 100) if read else None,
-        "rate_basis": f"{len(landed)} landed of {len(read)} decisions with an outcome read" if read else "No outcome has been read yet",
-        "median_days_to_decide": median([float(x) for x in history]),
-        "days_to_decide_basis": f"{len(history)} decided records with an opened date" if history else None,
+        "follow_through_rate_pct": round(len(landed) / len(read) * 100) if len(read) >= MIN_OUTCOMES_FOR_RATE else None,
+        "rate_basis": (
+            f"{len(landed)} landed of {len(read)} decisions with an outcome read"
+            if len(read) >= MIN_OUTCOMES_FOR_RATE
+            else f"{len(read)} outcome(s) read; {MIN_OUTCOMES_FOR_RATE} are needed before a rate means anything"
+        ),
+        "median_days_to_decide": median([float(x) for x in history]) if len(history) >= MIN_HISTORY_FOR_MEDIAN else None,
+        "days_to_decide_basis": f"{len(history)} decided records with an opened date",
+        "without_success_signal": sum(1 for r in decided if not r.success_signal),
         "one_way_doors": sum(1 for r in decided if r.reversible == "no"),
         # The validator refuses these, so this is 0 unless someone edited the log by hand.
         "no_decider_named": sum(1 for r in decided if not is_named_person(r.decided_by)),

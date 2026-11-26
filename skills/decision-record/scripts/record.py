@@ -6,6 +6,7 @@
     python3 scripts/record.py drop     D-0003 --because "reason" --as-of ... --log ...
     python3 scripts/record.py outcome  D-0001 --outcome landed|watch|stalled --date YYYY-MM-DD --evidence "..." --as-of ... --log ...
     python3 scripts/record.py validate --log decisions.md --as-of YYYY-MM-DD
+    python3 scripts/record.py adr      --log decisions.md --as-of YYYY-MM-DD --out docs/adr
 
 Every command prints JSON. Exit 0: written or valid. Exit 2: refused, with the
 rules that refused it. Nothing is written when any error is found.
@@ -120,7 +121,7 @@ def cmd_decide(a) -> int:
             r.decision = declog.clean(a.decision)
         if a.chosen:
             r.chosen = declog.clean(a.chosen)
-        for attr in ("owner", "review_by", "reversible"):
+        for attr in ("owner", "review_by", "reversible", "success_signal"):
             v = getattr(a, attr)
             if v:
                 setattr(r, attr, declog.clean(v).lower() if attr == "reversible" else declog.clean(v))
@@ -157,6 +158,50 @@ def cmd_validate(a) -> int:
     return report("validate", declog.validate_log(load_log(a.log), as_of(a.as_of)))
 
 
+def adr_text(r: declog.Record) -> str:
+    """One record as an architecture decision record, for teams that keep docs/adr/."""
+    status = {"decided": "Accepted", "open": "Proposed", "dropped": "Rejected"}.get(r.status, r.status)
+    out = [f"# {r.id}. {r.title or r.decision}", "", f"Status: {status}", ""]
+    if r.decided_by or r.date:
+        out += [f"Decided by {r.decided_by or 'nobody named'} on {r.date or 'no date'}.", ""]
+    out += ["## Context", "", r.source or "Source not recorded.", ""]
+    if r.options:
+        out += ["## Options considered", "", *[f"- {o}" for o in r.options], ""]
+    out += ["## Decision", "", r.decision or r.title, ""]
+    if r.evidence:
+        out += [f"> {r.evidence}", ""]
+    cons = [
+        f"- Owner: {r.owner}" if r.owner else None,
+        f"- Reversible: {r.reversible}" if r.reversible else None,
+        f"- Success signal: {r.success_signal}" if r.success_signal else None,
+        f"- Review by: {r.review_by}" if r.review_by else None,
+        *[f"- Assumption: {x}" for x in r.assumptions],
+        f"- Outcome: {r.outcome} on {r.outcome_date}. {r.outcome_evidence or ''}".rstrip() if r.outcome else None,
+        f"- Dropped because: {r.dropped_because}" if r.dropped_because else None,
+    ]
+    out += ["## Consequences", "", *[c for c in cons if c], ""]
+    return "\n".join(out)
+
+
+def cmd_adr(a) -> int:
+    records = load_log(a.log)
+    errs = errors(declog.validate_log(records, as_of(a.as_of)))
+    if errs:
+        return report("adr", errs)
+    a.out.mkdir(parents=True, exist_ok=True)
+    written = []
+    for r in records:
+        if a.id and r.id != a.id:
+            continue
+        slug = "-".join(declog.norm_for_match(r.title or r.id).replace("'", "").split())[:60].strip("-")
+        slug = "".join(ch for ch in slug if ch.isalnum() or ch == "-")
+        path = a.out / f"{r.id.lower()}-{slug}.md"
+        path.write_text(adr_text(r), encoding="utf-8")
+        written.append(str(path))
+    emit({"action": "adr", "result": "written", "files": written, "errors": [], "warnings": []})
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -189,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--owner")
     s.add_argument("--review-by")
     s.add_argument("--reversible", choices=declog.REVERSIBLE)
+    s.add_argument("--success-signal", help="The result that would show this worked, with its metric and threshold.")
     s.set_defaults(fn=cmd_decide)
 
     s = sub.add_parser("drop")
@@ -208,6 +254,12 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("validate")
     common(s)
     s.set_defaults(fn=cmd_validate)
+
+    s = sub.add_parser("adr", help="Write records as ADR files, one per record.")
+    common(s)
+    s.add_argument("--out", type=Path, required=True, help="Folder for the ADR files, for example docs/adr.")
+    s.add_argument("--id", help="Only this record.")
+    s.set_defaults(fn=cmd_adr)
 
     a = p.parse_args(argv)
     return a.fn(a)

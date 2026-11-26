@@ -106,6 +106,32 @@ class TestClearDecision(unittest.TestCase):
         r.evidence = "“my call:  WE go with approve before send for every drafted quote.”"
         self.assertNotIn("evidence-not-in-source", rules(declog.validate(r, AS_OF, self.src)))
 
+    def test_decision_date_must_match_the_evidence_line(self):
+        r = draft("draft_decided.json")
+        r.date = "2026-11-11"
+        self.assertIn("date-not-evidence-date", rules(declog.validate(r, AS_OF, self.src), "error"))
+
+    def test_date_header_dates_notes_lines(self):
+        src = (FIX / "notes_undecided.txt").read_text(encoding="utf-8")
+        utt = declog.parse_source(src)
+        self.assertTrue(all(u["date"] == "2026-11-18" for u in utt if u["speaker"]))
+
+    def test_slack_handles_match_the_decider(self):
+        src = "[2026-11-12 10:15] @maya.ortiz: My call: approve before send.\n"
+        r = draft("draft_decided.json")
+        r.evidence = "My call: approve before send."
+        f = declog.validate(r, AS_OF, src)
+        self.assertNotIn("decider-not-in-source", rules(f))
+        self.assertNotIn("evidence-from-someone-else", rules(f))
+
+    def test_assumptions_and_signal_round_trip(self):
+        r = draft("draft_decided.json")
+        r.id = "D-0001"
+        back = declog.parse_log(declog.format_log([r]))[0]
+        self.assertEqual(back.assumptions, r.assumptions)
+        self.assertEqual(len(back.assumptions), 2)
+        self.assertEqual(back.success_signal, r.success_signal)
+
     def test_chosen_must_be_an_option(self):
         r = draft("draft_decided.json")
         r.chosen = "Auto-send to repeat customers"
@@ -159,6 +185,17 @@ class TestOtherRules(unittest.TestCase):
         r.review_by = "2026-11-01"
         self.assertIn("review-before-decision", rules(declog.validate(r, AS_OF), "error"))
 
+    def test_no_success_signal_warns(self):
+        r = self.base()
+        r.success_signal = None
+        self.assertIn("no-success-signal", rules(declog.validate(r, AS_OF), "warning"))
+
+    def test_landed_needs_a_success_signal(self):
+        r = self.base()
+        r.success_signal = None
+        r.outcome, r.outcome_date, r.outcome_evidence = "landed", "2026-11-25", "Complaints at 3 (illustrative)"
+        self.assertIn("landed-without-signal", rules(declog.validate(r, AS_OF), "error"))
+
     def test_landed_needs_evidence(self):
         r = self.base()
         r.outcome, r.outcome_date = "landed", "2026-11-25"
@@ -178,6 +215,11 @@ class TestOtherRules(unittest.TestCase):
         r = self.base()
         r.reversible, r.review_by = "no", None
         self.assertIn("one-way-door-no-review", rules(declog.validate(r, AS_OF), "warning"))
+
+    def test_one_way_door_needs_a_success_signal(self):
+        r = self.base()
+        r.reversible, r.success_signal = "no", None
+        self.assertIn("one-way-door-no-signal", rules(declog.validate(r, AS_OF), "error"))
 
     def test_drop_needs_reason(self):
         r = declog.Record(id="D-0001", title="x", status="dropped")
@@ -265,13 +307,38 @@ class TestQueueAndFollowThrough(unittest.TestCase):
         ft = declog.follow_through(self.recs, AS_OF)
         self.assertEqual((ft["decided"], ft["outcome_read"], ft["not_yet_read"]), (4, 3, 1))
         self.assertEqual((ft["landed"], ft["watch"], ft["stalled"]), (1, 1, 1))
-        self.assertEqual(ft["follow_through_rate_pct"], 33)
-        self.assertEqual(ft["rate_basis"], "1 landed of 3 decisions with an outcome read")
+        # Three outcomes read is too few for a rate, so none is printed.
+        self.assertIsNone(ft["follow_through_rate_pct"])
+        self.assertEqual(ft["rate_basis"], "3 outcome(s) read; 5 are needed before a rate means anything")
+        self.assertEqual(ft["median_days_to_decide"], 8.0)
+        self.assertEqual(ft["without_success_signal"], 0)
         self.assertEqual([r["id"] for r in ft["stalled_rows"]], ["D-0002"])
         self.assertEqual(ft["review_due"][0]["id"], "D-0003")
         self.assertEqual(ft["review_due"][0]["days_overdue"], 16)
         self.assertEqual(ft["one_way_doors"], 1)
         self.assertEqual(ft["no_decider_named"], 0)
+
+    def test_rate_appears_at_five_outcomes(self):
+        recs = []
+        for i, outcome in enumerate(["landed", "landed", "landed", "watch", "stalled"], start=1):
+            recs.append(declog.Record(id=f"D-{i:04d}", title="x", status="decided", decided_by="Maya Ortiz", date="2026-10-01", outcome=outcome))
+        ft = declog.follow_through(recs, AS_OF)
+        self.assertEqual(ft["follow_through_rate_pct"], 60)
+        self.assertEqual(ft["rate_basis"], "3 landed of 5 decisions with an outcome read")
+
+    def test_median_needs_three_decided_records(self):
+        two = [r for r in self.recs if r.id in ("D-0001", "D-0002", "D-0005")]
+        q = declog.open_queue(two, AS_OF)
+        self.assertIsNone(q["usual_days_to_decide"])
+        self.assertIn("3 are needed for a median", q["usual_basis"])
+        self.assertEqual(q["counts"]["past_due"], 0)
+
+    def test_review_due_carries_what_to_test(self):
+        due = declog.follow_through(self.recs, AS_OF)["review_due"][0]
+        self.assertEqual(due["success_signal"], "Audit requests answered in under 1 day (illustrative)")
+        code, out = run_cli(open_decisions.main, ["--log", str(FIX / "sample_log.md"), "--as-of", "2026-11-26"])
+        self.assertIn("- Test against: Audit requests answered in under 1 day (illustrative)", out)
+        self.assertIn("Escalate: past due by more than 14 days with nobody named to make the call.", out)
 
     def test_follow_through_with_nothing_read_has_no_rate(self):
         self.assertIsNone(declog.follow_through([], AS_OF)["follow_through_rate_pct"])
@@ -280,7 +347,7 @@ class TestQueueAndFollowThrough(unittest.TestCase):
         code, out = run_cli(open_decisions.main, ["--log", str(FIX / "sample_log.md"), "--as-of", "2026-11-26"])
         self.assertEqual(code, 0)
         self.assertIn("| D-0006 | Does the assistant answer customer replies on its own? | 29 | nobody named | escalate |", out)
-        self.assertIn("Follow-through: 33%", out)
+        self.assertIn("Follow-through: no rate yet (3 outcome(s) read; 5 are needed", out)
 
 
 class TestRecordCli(unittest.TestCase):
@@ -347,6 +414,8 @@ class TestRecordCli(unittest.TestCase):
             "Decided: per-trade setting with day 7 as the default.",
             "--chosen",
             "Per-trade setting, day 7 default",
+            "--success-signal",
+            "Days sales outstanding no worse than 38 days by 2027-01-15 (illustrative)",
             "--owner",
             "Sam Whitfield",
             "--review-by",
@@ -388,6 +457,24 @@ class TestRecordCli(unittest.TestCase):
         code, _ = self.cli("drop", "D-0001", "--because", "Superseded by the billing rebuild.", "--as-of", "2026-11-26", "--log", self.log)
         self.assertEqual(code, 0)
         self.assertEqual(declog.parse_log(self.log.read_text(encoding="utf-8"))[0].status, "dropped")
+
+    def test_adr_export(self):
+        out = self.tmp / "adr"
+        code, res = self.cli("adr", "--log", FIX / "sample_log.md", "--as-of", "2026-11-26", "--out", out)
+        self.assertEqual(code, 0, res)
+        files = sorted(p.name for p in out.iterdir())
+        self.assertEqual(len(files), 9)
+        self.assertEqual(files[0], "d-0001-quote-drafts-use-the-trades-own-price-book.md")
+        text = (out / files[0]).read_text(encoding="utf-8")
+        self.assertIn("Status: Accepted", text)
+        self.assertIn("Decided by Maya Ortiz on 2026-09-08.", text)
+        self.assertIn("- Success signal: Quote edit rate below 25% within six weeks (illustrative)", text)
+
+    def test_adr_refuses_an_invalid_log(self):
+        self.log.write_text(declog.LOG_HEADER + "\n## D-0001: x\n\n- Status: decided\n- Decided by: the team\n", encoding="utf-8")
+        code, _ = self.cli("adr", "--log", self.log, "--as-of", "2026-11-26", "--out", self.tmp / "adr")
+        self.assertEqual(code, record.REFUSED)
+        self.assertFalse((self.tmp / "adr").exists())
 
     def test_unknown_id_is_refused(self):
         self.log.write_text(declog.LOG_HEADER, encoding="utf-8")

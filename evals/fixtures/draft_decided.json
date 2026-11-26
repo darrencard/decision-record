@@ -2,13 +2,22 @@
   "title": "Quote drafts need the tradesperson's approval before they send",
   "status": "decided",
   "decision": "Every quote the assistant drafts waits for the tradesperson to approve it before it goes to the customer.",
-  "options": ["Auto-send every draft", "Approve before send", "Auto-send under a value threshold"],
+  "options": [
+    "Auto-send every draft",
+    "Approve before send",
+    "Auto-send under a value threshold"
+  ],
   "chosen": "Approve before send",
   "decided_by": "Maya Ortiz",
   "date": "2026-11-12",
   "owner": "Tom Okafor",
   "review_by": "2026-12-15",
   "reversible": "yes",
+  "success_signal": "Wrong-line-item complaints fall below 5 a month by 2026-12-15 (illustrative), with quote send time no more than 1 day slower.",
+  "assumptions": [
+    "Most wrong line items are caught when the tradesperson reads the draft",
+    "Approving each draft adds under a minute per quote"
+  ],
   "opened": "2026-11-10",
   "source": "Slack #quotes-squad thread, 2026-11-10 to 2026-11-12 (illustrative)",
   "evidence": "My call: we go with approve before send for every drafted quote."

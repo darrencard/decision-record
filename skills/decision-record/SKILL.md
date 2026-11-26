@@ -38,7 +38,7 @@ Work from the skill's root. Ask the user for today's date if you do not know it:
 - [ ] 6. Append            scripts/record.py append
 ```
 
-1. **Save the source** verbatim to a text file (for example `run/source.txt`). Do not tidy it: the evidence check matches words exactly. Speaker lines like `[2026-11-12 10:15] Name: text`, `Name (00:12:03): text` and `Name: text` are all read.
+1. **Save the source** verbatim to a text file (for example `run/source.txt`). Do not tidy it: the evidence check matches words exactly. Speaker lines like `[2026-11-12 10:15] Name: text`, `Name (00:12:03): text` and `Name: text` are all read, and a Slack handle such as `@maya.ortiz` matches the name Maya Ortiz.
 2. **Scan.** `python3 scripts/scan.py run/source.txt` lists speakers, dates and the lines that sound like a call being made, deferred or asked. It finds candidates only. Decision language is not a decision.
 3. **Draft** `run/draft.json` with these keys (leave out what the source does not say; never fill a gap with a guess):
    - `title`: the decision in under 12 words.
@@ -48,9 +48,11 @@ Work from the skill's root. Ask the user for today's date if you do not know it:
    - `decided_by`: the one person who made the call. `date`: when they made it, `YYYY-MM-DD`.
    - `owner`: who carries it out. `review_by`: when to check it worked.
    - `reversible`: `yes`, `no` or `unknown`. Take it from the source; if nobody said, `unknown`.
+   - `success_signal`: the result that would show it worked, with a metric, a threshold and a date. Take it from the source; if nobody said, leave it out and ask the user for one before writing. Without it, the review has nothing to test and the record can never be `landed`.
+   - `assumptions`: what the call rests on, one per item, if the source says. A review tests these.
    - `opened`: when the question was first raised. This is what lets the log age a call.
    - `waiting_on`: for an open record, the one person the call needs.
-   - `source`: where the text came from (channel, meeting, date). `evidence`: the decider's line, copied word for word.
+   - `source`: where the text came from (channel, meeting, date). `evidence`: the decider's line, copied word for word. When the line has a dated timestamp or sits under a `Date:` header, `date` must match it.
 4. **Check.** `python3 scripts/record.py check --draft run/draft.json --source run/source.txt --as-of YYYY-MM-DD --log decisions.md`. Fix every error from the source. Report each warning to the user (no owner, no review date, reversibility unknown, a one-way door with no review date).
 5. **Confirm.** Show the user the record as it will be written, with any warnings, and ask for a yes before writing.
 6. **Append.** `python3 scripts/record.py append --draft run/draft.json --source run/source.txt --as-of YYYY-MM-DD --log decisions.md`. It gives the record its id (`D-0001`, `D-0002` ...) and appends it. Records already in the log are left byte for byte.
@@ -59,23 +61,32 @@ A thread with several decisions gets one draft and one append per decision. A th
 
 ## Workflow: update a record
 
-- An open call gets made: `python3 scripts/record.py decide D-0005 --decided-by "Name" --date YYYY-MM-DD --evidence "their words" --source run/followup.txt --as-of ... --log decisions.md` (plus `--chosen`, `--owner`, `--review-by`, `--reversible` when the source gives them).
+- An open call gets made: `python3 scripts/record.py decide D-0005 --decided-by "Name" --date YYYY-MM-DD --evidence "their words" --source run/followup.txt --as-of ... --log decisions.md` (plus `--chosen`, `--owner`, `--review-by`, `--reversible`, `--success-signal` when the source gives them).
 - An open call is no longer needed: `python3 scripts/record.py drop D-0005 --because "reason" --as-of ... --log decisions.md`.
-- A review comes due: `python3 scripts/record.py outcome D-0001 --outcome landed|watch|stalled --date YYYY-MM-DD --evidence "what the result was, and where it came from" --as-of ... --log decisions.md`. `landed` needs evidence of the result; without it, the most a record can say is `watch`.
+- A review comes due: `python3 scripts/record.py outcome D-0001 --outcome landed|watch|stalled --date YYYY-MM-DD --evidence "what the result was, and where it came from" --as-of ... --log decisions.md`. `landed` needs a success signal and evidence of the result against it; without them, the most a record can say is `watch`.
 
 ## Workflow: open decisions and follow-through
 
 `python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD` prints both reads as Markdown (`--json` for the raw figures).
 
 - **Open decisions**, oldest first: days waiting, on whom, and a flag. A call is past due when it has waited longer than a decision usually takes in this log (the median days from opened to decided across its own records), or `--usual-days N` if the user sets a target. It escalates when it is past due by 14 more days (`--escalate-after`) and nobody is named to make it. A call with no opened date has no age: say so, never estimate one.
-- **Follow-through**: of the decisions whose outcome has been read, how many landed, are on watch or stalled, the rate with its basis, and the reviews that are due. A decision nobody has checked counts as not yet read, never as landed.
+- **Follow-through**: of the decisions whose outcome has been read, how many landed, are on watch or stalled, and the reviews that are due, each with its success signal and assumptions so the review tests what the call said it would do. A decision nobody has checked counts as not yet read, never as landed.
+- **Small numbers stay counts.** The usual time to decide needs 3 decided records with an opened date; the follow-through rate needs 5 outcomes read. Below that the script prints counts and says why there is no median or rate. Report it that way: do not work one out.
 
 Lead with the headline line the script prints. Then name each past-due or escalated call and the person it waits on. Use only the words landed, watch and stalled for outcomes.
 
+## ADR files
+
+Engineering teams that keep architecture decision records can write the log out as one file per record: `python3 scripts/record.py adr --log decisions.md --as-of YYYY-MM-DD --out docs/adr` (add `--id D-0004` for one). It refuses an invalid log. The log stays the source of truth; regenerate the ADR files from it.
+
+## Keep the log valid in CI
+
+Teams that keep `decisions.md` in a repository can block a hand-edited record in review: run `python3 <skill>/scripts/record.py validate --log decisions.md --as-of $(date +%F)` in CI. It exits 2 on any error. Two people appending at once can produce the same id; `validate` catches it as `duplicate-id`.
+
 ## Rules the validator enforces
 
-Errors block the write: `no-decider`, `decider-not-a-person`, `decider-not-in-source`, `no-decision-date`, `no-evidence`, `evidence-not-in-source`, `no-decision-text`, `date-invalid`, `date-in-future`, `review-before-decision`, `chosen-not-an-option`, `status-invalid`, `reversible-invalid`, `open-with-decider`, `drop-without-reason`, `outcome-invalid`, `outcome-on-undecided`, `outcome-without-date`, `outcome-before-decision`, `landed-without-evidence`, `duplicate-id`, `id-invalid`.
+Errors block the write: `no-decider`, `decider-not-a-person`, `decider-not-in-source`, `no-decision-date`, `no-evidence`, `evidence-not-in-source`, `date-not-evidence-date`, `landed-without-signal`, `one-way-door-no-signal`, `no-decision-text`, `date-invalid`, `date-in-future`, `review-before-decision`, `chosen-not-an-option`, `status-invalid`, `reversible-invalid`, `open-with-decider`, `drop-without-reason`, `outcome-invalid`, `outcome-on-undecided`, `outcome-without-date`, `outcome-before-decision`, `landed-without-evidence`, `duplicate-id`, `id-invalid`.
 
-Warnings are shown and allowed: `no-owner`, `no-review-date`, `reversibility-unknown`, `one-way-door-no-review`, `one-option`, `evidence-from-someone-else`, `no-opened-date`, `waiting-on-nobody`, `waiting-on-not-a-person`, `waiting-on-not-in-source`.
+Warnings are shown and allowed: `no-success-signal`, `no-owner`, `no-review-date`, `reversibility-unknown`, `one-way-door-no-review`, `one-option`, `evidence-from-someone-else`, `no-opened-date`, `waiting-on-nobody`, `waiting-on-not-a-person`, `waiting-on-not-in-source`.
 
 The log format is in `references/log-format.md`. A worked example log is `evals/fixtures/sample_log.md` in the repository.
