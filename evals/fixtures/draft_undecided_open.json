@@ -1,0 +1,10 @@
+{
+  "title": "What replaces the day 7 invoice chase default?",
+  "status": "open",
+  "decision": "Choose the invoice chase day: keep day 7 for everyone, or let each trade pick with day 7 as the default.",
+  "options": ["Keep day 7 for everyone", "Per-trade setting, day 7 default"],
+  "opened": "2026-11-18",
+  "waiting_on": "Raj Mehta",
+  "source": "Meeting notes, invoice chasing cadence, 2026-11-18 (illustrative)",
+  "evidence": "Raj to come back with the cash numbers and we pick this up next week."
+}

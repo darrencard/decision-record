@@ -1,0 +1,48 @@
+# Decision log format (v1)
+
+One Markdown file. `scripts/record.py` writes every record and `scripts/declog.py` parses every record back, so a log written by the scripts always round-trips. Change it through the scripts, not by hand, so every record stays valid. `record.py validate` checks a whole log.
+
+```markdown
+## D-0001: Quote drafts need the tradesperson's approval before they send
+
+- Status: decided
+- Decision: Every quote the assistant drafts waits for the tradesperson to approve it before it goes to the customer.
+- Options considered:
+  - Auto-send every draft
+  - Approve before send
+  - Auto-send under a value threshold
+- Chosen: Approve before send
+- Decided by: Maya Ortiz
+- Date: 2026-11-12
+- Owner: Tom Okafor
+- Review by: 2026-12-15
+- Reversible: yes
+- Opened: 2026-11-10
+- Source: Slack #quotes-squad thread, 2026-11-10 to 2026-11-12 (illustrative)
+- Evidence: My call: we go with approve before send for every drafted quote.
+```
+
+(Illustrative. Acme and everyone in it are invented.)
+
+| Field | Values | Required |
+|---|---|---|
+| Status | open, decided, dropped | always |
+| Decision | one sentence | decided |
+| Options considered | one sub-bullet per option | no (a warning below two) |
+| Chosen | one of the options | no |
+| Decided by | one named person | decided |
+| Date | YYYY-MM-DD, not after today | decided |
+| Owner | who carries it out | no (warning) |
+| Review by | YYYY-MM-DD, not before Date | no (warning) |
+| Reversible | yes, no, unknown | no (warning) |
+| Opened | YYYY-MM-DD | no (without it a call cannot age) |
+| Waiting on | one named person | open (warning) |
+| Source | where the text came from | no |
+| Evidence | the decider's words, verbatim | decided |
+| Outcome | landed, watch, stalled | no; decided only |
+| Outcome date | YYYY-MM-DD | with Outcome |
+| Outcome evidence | the result and where it came from | with Outcome landed |
+| Dropped because | the reason | dropped |
+| Notes | free text | no |
+
+Empty fields are left out. Every value is one line: newlines in source text are collapsed, so a value can never start a new field or a new record.

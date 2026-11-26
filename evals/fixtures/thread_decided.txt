@@ -1,0 +1,11 @@
+Illustrative sample. Acme is an invented company and every person, figure and date here is made up.
+Slack, #quotes-squad, thread started 2026-11-10
+
+[2026-11-10 09:02] Tom Okafor: Should the assistant send drafted quotes straight to the customer, or does the tradesperson approve each one first?
+[2026-11-10 09:05] Tom Okafor: Options as I see them: auto-send every draft, approve before send, or auto-send under a value threshold.
+[2026-11-10 09:20] Lena Brandt: Support saw 14 complaints last month about a wrong line item going out (illustrative). Auto-send makes that worse.
+[2026-11-10 09:31] Sam Whitfield: A threshold sounds tidy but every trade prices differently, so one number will be wrong for most of them.
+[2026-11-11 16:40] Lena Brandt: Can we get a call on this before the Thursday release?
+[2026-11-12 10:15] Maya Ortiz: My call: we go with approve before send for every drafted quote. We can revisit a threshold once the draft accuracy data is in.
+[2026-11-12 10:18] Maya Ortiz: Tom owns the change. Let's review it on 2026-12-15 against the complaint count.
+[2026-11-12 10:20] Tom Okafor: Got it. It is a settings flag, so easy to switch back if it slows trades down.

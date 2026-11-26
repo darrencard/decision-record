@@ -1,0 +1,12 @@
+Illustrative sample. Acme is an invented company and every person, figure and date here is made up.
+Meeting notes: invoice chasing cadence
+Date: 2026-11-18
+Attendees: Sam Whitfield, Lena Brandt, Raj Mehta
+
+Sam Whitfield: The assistant chases unpaid invoices on day 7 today. Some trades want day 3, some want day 14.
+Lena Brandt: Customers complain when the chase lands before the job is signed off.
+Raj Mehta: Finance would rather chase sooner. Days sales outstanding matters more to us than the complaints.
+Sam Whitfield: We agreed the current day 7 default is a problem, but not what replaces it.
+Lena Brandt: Could we let each trade pick, with day 7 as the default?
+Raj Mehta: I need to see what that does to cash collection before I sign up to anything.
+Sam Whitfield: OK, no decision today. Raj to come back with the cash numbers and we pick this up next week.
