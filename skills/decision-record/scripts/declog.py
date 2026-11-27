@@ -21,8 +21,11 @@ LOG_HEADER = "# Decision log\n\n<!-- decision-record log v1. Written by scripts/
 
 STATUSES = ("open", "decided", "dropped")
 REVERSIBLE = ("yes", "no", "unknown")
-# The follow-through read uses the only status vocabulary there is.
-OUTCOMES = ("landed", "watch", "stalled")
+# A decision's outcome: did the call do what its success signal said? These are not a bet's status
+# words. Landed, watch and stalled belong to a bet and only did-it-land sets them (Landing Loop contract).
+OUTCOMES = ("worked", "pending", "missed")
+# Logs written before 0.3.0 used the bet words for outcomes. They are read as the new words.
+LEGACY_OUTCOMES = {"landed": "worked", "watch": "pending", "stalled": "missed"}
 
 # Field label in the Markdown, attribute name on the record. Order is the write order.
 FIELDS: tuple[tuple[str, str], ...] = (
@@ -235,7 +238,10 @@ def parse_log(text: str) -> list[Record]:
             attr = LABEL_TO_ATTR.get(fm.group(1).strip().lower())
             in_list = attr if attr in LIST_ATTRS else None
             if attr and attr not in LIST_ATTRS:
-                setattr(cur, attr, clean(fm.group(2)))
+                value = clean(fm.group(2))
+                if attr == "outcome" and value:
+                    value = LEGACY_OUTCOMES.get(value.lower(), value)
+                setattr(cur, attr, value)
             continue
         if line.strip():
             in_list = None
@@ -406,13 +412,13 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
 
     if r.outcome:
         if r.outcome not in OUTCOMES:
-            err("outcome-invalid", f"Outcome must be landed, watch or stalled; got {r.outcome!r}.")
+            err("outcome-invalid", f"Outcome must be worked, pending or missed; got {r.outcome!r}.")
         if r.status != "decided":
             err("outcome-on-undecided", "Only a decided record has an outcome.")
-        if r.outcome == "landed" and not r.success_signal:
-            err("landed-without-signal", "Landed needs a success signal to have landed against. Add what result was expected, or read it as watch.")
-        if r.outcome == "landed" and not r.outcome_evidence:
-            err("landed-without-evidence", "Landed needs evidence of the result. Without it, the most it can say is watch.")
+        if r.outcome == "worked" and not r.success_signal:
+            err("worked-without-signal", "Worked needs a success signal to test the result against. Add what result was expected, or read it as pending.")
+        if r.outcome == "worked" and not r.outcome_evidence:
+            err("worked-without-evidence", "Worked needs evidence of the result. Without it, the most it can say is pending.")
         if not r.outcome_date:
             err("outcome-without-date", "An outcome needs the date it was read.")
         od, dd = parse_date(r.outcome_date), parse_date(r.date)
@@ -573,12 +579,12 @@ def headline(items: list[dict]) -> str:
 def follow_through(records: list[Record], as_of: date) -> dict:
     """Of the calls made, how many turned into a result. Ported from Throughline's
     decision log read. The rate counts only decisions whose outcome has been read:
-    a decision nobody has checked is not counted as landed or as stalled."""
+    a decision nobody has checked is not counted as worked or as missed."""
     decided = [r for r in records if r.status == "decided"]
     read = [r for r in decided if r.outcome in OUTCOMES]
-    landed = [r for r in read if r.outcome == "landed"]
-    watch = [r for r in read if r.outcome == "watch"]
-    stalled = [r for r in read if r.outcome == "stalled"]
+    worked = [r for r in read if r.outcome == "worked"]
+    pending = [r for r in read if r.outcome == "pending"]
+    missed = [r for r in read if r.outcome == "missed"]
     review_due = []
     for r in decided:
         rb = parse_date(r.review_by)
@@ -601,12 +607,12 @@ def follow_through(records: list[Record], as_of: date) -> dict:
         "decided": len(decided),
         "outcome_read": len(read),
         "not_yet_read": len(decided) - len(read),
-        "landed": len(landed),
-        "watch": len(watch),
-        "stalled": len(stalled),
-        "follow_through_rate_pct": round(len(landed) / len(read) * 100) if len(read) >= MIN_OUTCOMES_FOR_RATE else None,
+        "worked": len(worked),
+        "pending": len(pending),
+        "missed": len(missed),
+        "follow_through_rate_pct": round(len(worked) / len(read) * 100) if len(read) >= MIN_OUTCOMES_FOR_RATE else None,
         "rate_basis": (
-            f"{len(landed)} landed of {len(read)} decisions with an outcome read"
+            f"{len(worked)} worked of {len(read)} decisions with an outcome read"
             if len(read) >= MIN_OUTCOMES_FOR_RATE
             else f"{len(read)} outcome(s) read; {MIN_OUTCOMES_FOR_RATE} are needed before a rate means anything"
         ),
@@ -616,7 +622,7 @@ def follow_through(records: list[Record], as_of: date) -> dict:
         "one_way_doors": sum(1 for r in decided if r.reversible == "no"),
         # The validator refuses these, so this is 0 unless someone edited the log by hand.
         "no_decider_named": sum(1 for r in decided if not is_named_person(r.decided_by)),
-        "stalled_rows": [{"id": r.id, "title": r.title or r.decision, "owner": r.owner, "outcome_date": r.outcome_date} for r in stalled],
+        "missed_rows": [{"id": r.id, "title": r.title or r.decision, "owner": r.owner, "outcome_date": r.outcome_date} for r in missed],
         "review_due": review_due,
     }
 
@@ -679,8 +685,7 @@ def leader_report_markdown(rows: list[dict], as_of: date) -> str:
         return "" if v is None else str(v).replace("|", "\\|")
 
     out = [
-        f"Open decisions as of {as_of.isoformat()}, from the decision log. Import with the Leader Report: "
-        "intake.py import run/intake.json --decisions this-file.md",
+        f"Open decisions as of {as_of.isoformat()}, from the decision log. Import with the Leader Report: intake.py import run/intake.json --decisions this-file.md",
         "",
         "| " + " | ".join(cols) + " |",
         "|" + "---|" * len(cols),

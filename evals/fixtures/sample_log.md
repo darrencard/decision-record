@@ -21,7 +21,7 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 - Opened: 2026-09-01
 - Source: Slack #quotes-squad (illustrative)
 - Evidence: Maya Ortiz: Price book it is.
-- Outcome: landed
+- Outcome: worked
 - Outcome date: 2026-10-20
 - Outcome evidence: Quote edit rate fell from 41% to 22% over six weeks (illustrative)
 
@@ -42,7 +42,7 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 - Opened: 2026-09-15
 - Source: Finance and product sync notes (illustrative)
 - Evidence: Raj Mehta: Let's go with SMS too.
-- Outcome: stalled
+- Outcome: missed
 - Outcome date: 2026-11-01
 - Outcome evidence: Paid-within-14-days rate flat at 58% (illustrative)
 
@@ -81,7 +81,7 @@ Illustrative sample. Acme is an invented company and every person, figure and da
 - Opened: 2026-10-20
 - Source: Slack #invoices-squad (illustrative)
 - Evidence: Maya Ortiz: Go ahead with their own tone.
-- Outcome: watch
+- Outcome: pending
 - Outcome date: 2026-11-20
 - Outcome evidence: Reply rate up 3 points on 2 weeks of data (illustrative)
 

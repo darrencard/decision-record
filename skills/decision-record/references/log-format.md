@@ -39,7 +39,7 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 | Owner | who carries it out | no (warning) |
 | Review by | YYYY-MM-DD, not before Date | no (warning) |
 | Reversible | yes, no, unknown | no (warning) |
-| Success signal | the result that would show it worked: metric, threshold, date | no (warning); required for Outcome landed |
+| Success signal | the result that would show it worked: metric, threshold, date | no (warning); required for Outcome worked |
 | Assumptions | one sub-bullet per assumption | no |
 | Opened | YYYY-MM-DD | no (without it a call cannot age) |
 | Waiting on | one named person | open (warning) |
@@ -47,9 +47,9 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 | Recommendation | who recommends what, from the source | no |
 | Source | where the text came from | no |
 | Evidence | the decider's words, verbatim; Date must match the line's date when the source dates it | decided |
-| Outcome | landed, watch, stalled | no; decided only |
+| Outcome | worked, pending, missed (a log from before 0.3.0 may say landed, watch, stalled; they read as these) | no; decided only |
 | Outcome date | YYYY-MM-DD | with Outcome |
-| Outcome evidence | the result and where it came from | with Outcome landed |
+| Outcome evidence | the result and where it came from | with Outcome worked |
 | Dropped because | the reason | dropped |
 | Notes | free text | no |
 

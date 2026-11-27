@@ -1,0 +1,11 @@
+{
+  "title": "Set the rollback trigger for quote drafting",
+  "status": "open",
+  "decision": "Which number rolls quote drafting back: wrong-price quotes over 2%, or rejected drafts over 30%?",
+  "options": ["Roll back when wrong-price quotes pass 2%", "Roll back when rejected drafts pass 30%"],
+  "opened": "2026-07-13",
+  "waiting_on": "Tom Okafor",
+  "decide_by": "2026-08-03",
+  "recommendation": "Sam Whitfield recommends the wrong-price trigger at 2%",
+  "source": "Acme decide call, 2026-07-27 (illustrative)"
+}

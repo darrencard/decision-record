@@ -1,0 +1,59 @@
+{
+  "schema": "landing-loop/1",
+  "bet": "quote-drafting",
+  "brief": {
+    "path": "briefs/quote-drafting.md",
+    "sha256": "decbe39590cc57b3d47125722a8d43e445d33c8f2f525c00277b94b7937dc95f"
+  },
+  "portfolio": {
+    "tool": "bet-portfolio-review 0.3.0",
+    "as_of": "2026-07-27",
+    "rank": {
+      "value": 4,
+      "unit": "rank of 8 bets, 1 needs work first",
+      "source": "bets.csv",
+      "window": {
+        "from": "2026-07-27",
+        "to": "2026-07-27"
+      },
+      "as_of": "2026-07-27"
+    },
+    "brief_score": {
+      "value": 14,
+      "unit": "points of 14",
+      "source": "briefs/quote-drafting.md",
+      "window": {
+        "from": "2026-07-27",
+        "to": "2026-07-27"
+      },
+      "as_of": "2026-07-27"
+    },
+    "brief_score_percent": {
+      "value": 100,
+      "unit": "%",
+      "source": "briefs/quote-drafting.md",
+      "window": {
+        "from": "2026-07-27",
+        "to": "2026-07-27"
+      },
+      "as_of": "2026-07-27"
+    },
+    "linked_work": {
+      "value": 4,
+      "unit": "work items",
+      "source": "work.csv",
+      "window": {
+        "from": "2026-07-27",
+        "to": "2026-07-27"
+      },
+      "as_of": "2026-07-27"
+    },
+    "owner": "Quoting squad lead",
+    "decides": "Head of Product, Quoting squad",
+    "gaps": [
+      "no-result"
+    ],
+    "brief_problems": [],
+    "next_step": "Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts."
+  }
+}

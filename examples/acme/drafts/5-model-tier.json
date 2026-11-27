@@ -1,0 +1,11 @@
+{
+  "title": "Choose the model tier for quote drafts",
+  "status": "open",
+  "decision": "Which model drafts quotes in v1: vendor-a/xl, or vendor-a/m?",
+  "options": ["vendor-a/xl", "vendor-a/m"],
+  "opened": "2026-07-20",
+  "waiting_on": "Priya Raman",
+  "decide_by": "2026-08-03",
+  "recommendation": "Tom Okafor recommends vendor-a/m, to stay inside the 9,000 token budget",
+  "source": "Acme decide call, 2026-07-27 (illustrative)"
+}

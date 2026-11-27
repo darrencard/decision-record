@@ -1,98 +1,104 @@
 # No decision without a named decider
 
-A free Claude skill that turns a Slack thread, meeting notes or a transcript into a decision record, and refuses to call anything decided until one named person made the call.
+A free Claude skill that turns a thread, meeting notes or a transcript into a decision record, and refuses to call anything decided until one named person made the call.
 
-**Why it matters:** most teams lose decisions in threads. Weeks later nobody can say who decided, what was turned down, or whether it worked. This skill writes each call to a log you can diff, and shows which calls are still waiting, on whom, and for how long.
-
-**How it works:** Python checks every record against the source before it is written. The decider's words must be in the source, word for word, on the date the record gives. "The team" or "leadership" is not a decider, so the record is logged as open, waiting on a named person. Each call states the result that would show it worked, and nothing is marked landed without evidence against it. Code computes every age and count. The model never does the maths.
-
-## Install: paste this into Claude Code
+## Paste this into Claude Code
 
 ```text
-Install the decision-record skill from https://github.com/darrencard/decision-record: copy skills/decision-record into ~/.claude/skills/decision-record and run its tests with python3 -m unittest discover -s evals. Then read the thread I paste next, write a decision record for each call in it, check each one against the thread with the skill's scripts, show me the records and any warnings, and append them to decisions.md after I say yes. If nobody named made a call, log it as open and tell me who it is waiting on.
+Install the decision-record skill: run /plugin marketplace add darrencard/landing-loop, then /plugin install decision-record@landing-loop. Then read the decisions in the thread I point you to (Slack or Linear through the connectors in this session, through the skill's from_thread.py; or the text I paste), write one record per call, check each against the source with the skill's scripts, show me the records and any warnings, and append them to decisions.md after I say yes. If nobody named made a call, log it as open and tell me who it waits on. Then list the open decisions with days waiting and on whom.
 ```
 
-Your first record comes back from the first thread you paste. Then ask "which decisions are open?" for days waiting, on whom, and what is past due.
+**What it does:** writes each call to a log with the one person who made it and their words from the source, and lists the calls still waiting, on whom, for how long.
 
-## A record
+**Why it matters:** most teams lose decisions in threads. Weeks later nobody can say who decided, what was turned down, or what result the call was meant to bring.
 
-```markdown
-## D-0001: Quote drafts need the tradesperson's approval before they send
+**Where it sits:** step 01 (Decide) of the Landing Loop. It reads the bet's landing brief and the `portfolio` key bet-portfolio-review wrote, writes only its `decisions` key in `landing/<bet>.json`, and feeds the Leader Report's decision slide unchanged.
 
-- Status: decided
-- Decision: Every quote the assistant drafts waits for the tradesperson to approve it before it goes to the customer.
-- Options considered:
-  - Auto-send every draft
-  - Approve before send
-  - Auto-send under a value threshold
-- Chosen: Approve before send
-- Decided by: Maya Ortiz
-- Date: 2026-11-12
-- Owner: Tom Okafor
-- Review by: 2026-12-15
-- Reversible: yes
-- Success signal: Wrong-line-item complaints fall below 5 a month by 2026-12-15 (illustrative), with quote send time no more than 1 day slower.
-- Assumptions:
-  - Most wrong line items are caught when the tradesperson reads the draft
-  - Approving each draft adds under a minute per quote
-- Opened: 2026-11-10
-- Source: Slack #quotes-squad thread, 2026-11-10 to 2026-11-12 (illustrative)
-- Evidence: My call: we go with approve before send for every drafted quote.
+**How it works:** Python checks every record against the source before it is written. The decider's words must be in the source, word for word, on the date the record gives. "The team" or "leadership" is not a decider, so the call is logged as open, waiting on a named person. Code computes every count and age. The model never does the maths.
+
+## Try it in one minute
+
+Acme is invented: invoicing software for trades businesses. Every person, figure and date is illustrative. From a fresh clone, with Python 3.11 or later:
+
+```bash
+python3 examples/acme/sample.py
 ```
 
-*Acme and everyone in it are invented.*
+It reads Acme's decide call of 2026-07-27 ([sources/](examples/acme/sources)), checks five draft records against it, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json). It starts from the landing-loop record filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
+
+```text
+3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Tom Okafor, against a usual 7.
+Next step: D-0004 waits on Tom Okafor: set the rollback trigger for quote drafting by 2026-08-03.
+```
+
+## Install
+
+In Claude Code:
+
+```text
+/plugin marketplace add darrencard/landing-loop
+/plugin install decision-record@landing-loop
+```
+
+Standalone: clone this repository and copy `skills/decision-record` into `~/.claude/skills/decision-record`. Run the tests with `python3 -m unittest discover -s evals` (or `python3 -m pytest evals`).
+
+## Reads and writes
+
+| | |
+|---|---|
+| Reads | The source: a Slack thread or Linear comments through `from_thread.py` (live first), or a CSV or pasted text as the fallback. The bet's landing brief, through the Leader Report's own parser. The `portfolio` key, if bet-portfolio-review wrote it. |
+| Writes | `decisions.md`, an append-only log your team can diff. The `decisions` key of `landing/<bet>.json`, and nothing else in it. One HTML page in the Leader Report style, and its Markdown twin. |
+
+Your own bet, once the records are in the log:
+
+```bash
+python3 skills/decision-record/scripts/open_decisions.py --log decisions.md --as-of 2026-07-27 \
+  --loop . --bet quote-drafting --html decisions.html --md decisions-read.md
+```
+
+## The record key
+
+Open decisions go in `rows`, in the Leader Report's decision format (`ask`, `options`, `recommendation`, `deadline`, plus `owner`, `days_waiting`, `id`, `source`), so its decision slide reads them unchanged. Every figure carries value, unit, source, window and as_of. Shortened from the Acme record:
+
+```json
+"decisions": {
+  "tool": "decision-record 0.3.0",
+  "as_of": "2026-07-27",
+  "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
+  "rows": [{"ask": "Set the rollback trigger for quote drafting", "options": "Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30%",
+            "recommendation": "Sam Whitfield recommends the wrong-price trigger at 2%. Waiting on Tom Okafor, 14 days open, past the usual 7 days to decide.",
+            "deadline": "2026-08-03", "owner": "Tom Okafor", "days_waiting": 14, "id": "D-0004", "source": "Acme decide call, 2026-07-27 (illustrative)"}],
+  "decided": [{"id": "D-0001", "title": "Build quote drafting now, against its landing brief", "decided_by": "Maya Ortiz", "date": "2026-07-27"}],
+  "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
+  "figures": {"past_due": {"value": 1, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 1de81b65e887)",
+              "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"}},
+  "next_step": "D-0004 waits on Tom Okafor: set the rollback trigger for quote drafting by 2026-08-03."
+}
+```
+
+Its words are a decision's own: open, decided, dropped, past due. A decision's outcome, read later, is worked, pending or missed. A bet's status belongs to did-it-land alone.
 
 ## What you get
 
-| Feature | What it does | What it does for you |
-|---|---|---|
-| Named decider rule | Refuses `decided` without one named person and their words from the source | No decision in the log that nobody owns |
-| Evidence check | Matches the decider's line to the source word for word, and its date to the line's timestamp | Any record traces back to the moment the call was made |
-| Success signal | Each call names the result that would show it worked; landed needs evidence against it | Reviews test a stated result, not a feeling |
-| One record per call | Decision, options, chosen option, decider, date, owner, review date, reversible | What was turned down and when to check it worked, in one place |
-| Open decisions | Days waiting, on whom, past due against the log's own median time to decide | The stuck calls and the people they wait on, oldest first |
-| Follow-through | Landed, watch and stalled on past calls; a rate only once 5 outcomes are read | Whether the calls you made turned into results, without a rate built on three data points |
-| Append-only log | One Markdown file; new records go on the end, old ones stay byte for byte; `record.py validate` runs in CI | A record your team can read, diff and review in a pull request |
-| Leader Report feed | `open_decisions.py --leader-report` writes open decisions as the table the Leader Report's decision slide imports | Decisions are kept once; the board deck shows the same calls, owners and deadlines as the log |
-| ADR export | `record.py adr` writes one ADR file per record into `docs/adr/` | Fits the way engineering teams already keep decisions |
-| Local | Python standard library only, no network calls, MIT licensed | Thread content never leaves your machine |
-
-## Example
-
-`evals/fixtures/` holds two sources for Acme, an invented invoicing company for trades businesses: a Slack thread where a named VP makes a clear call, and meeting notes where nobody does. The first becomes a decided record. The second is refused as decided ("the team" is not a person) and logged as open, waiting on the finance lead. All names, figures and dates are illustrative.
-
-```bash
-cd skills/decision-record
-python3 scripts/open_decisions.py --log ../../evals/fixtures/sample_log.md --as-of 2026-11-26
-```
-
-```text
-4 open · oldest 29 days · 2 past due · 2 waiting on nobody named
-Usual time to decide: 8 days (median of 4 decided records).
-Follow-through: no rate yet (3 outcome(s) read; 5 are needed before a rate means anything). landed 1 · watch 1 · stalled 1 · not yet read 1.
-```
-
-(Excerpt. The full output also lists each open call with its days waiting and on whom.)
-
-## Scripts
-
-| Script | Job |
+| Feature | What it does for you |
 |---|---|
-| `scan.py` | Lists speakers, dates and the lines that sound like a call made, deferred or asked |
-| `record.py` | `check`, `append`, `decide`, `drop`, `outcome`, `validate`, `adr`. Exit 2 when a rule refuses, and nothing is written |
-| `open_decisions.py` | Open decisions with days waiting and on whom, and follow-through. `--leader-report FILE` writes them for the Leader Report's decision slide |
-| `declog.py` | The log format, the validation rules and both reads |
+| Named decider rule | No decision in the log that nobody owns |
+| Evidence check | Every record traces back to the moment, and the words, of the call |
+| Open decisions | The stuck calls and the people they wait on, oldest first, past due against the log's own median time to decide |
+| Success signal | Each call names the result that would show it worked; the bet's own call names the brief's bar |
+| Leader Report feed | The board deck shows the same calls, owners and deadlines as the log |
+| Append-only log, ADR export, CI check | `record.py validate` blocks a hand-edited record in review; `record.py adr` writes `docs/adr/` |
 
-To block a hand-edited record in review, add one step to CI:
+## Limits
 
-```bash
-python3 skills/decision-record/scripts/record.py validate --log decisions.md --as-of "$(date +%F)"
-```
+- It records who made a call. It does not judge whether the call was right.
+- A source it cannot read is a source it cannot check: save threads and transcripts as text first.
+- The Slack and Linear readers are tested on documented response shapes, not yet on a live workspace.
+- The usual time to decide needs 3 decided records with an opened date; a follow-through rate needs 5 outcomes read. Below that it prints counts, not a rate.
 
-The rules are listed in [SKILL.md](skills/decision-record/SKILL.md) and the log format in [references/log-format.md](skills/decision-record/references/log-format.md). The ageing logic is ported from Throughline's decision queue.
+## Go deeper
 
-## Status
+- [SKILL.md](skills/decision-record/SKILL.md): the workflow and every rule the validator enforces.
+- [references/log-format.md](skills/decision-record/references/log-format.md): the log format.
 
-Version 0.2.0. Tested on the Acme fixtures only, not yet on a real team's threads. Python 3.9 or later. Tests: `python3 -m unittest discover -s evals -v`.
-
-MIT licensed. Made by [Dacard](https://www.dacard.ai).
+Version 0.3.0. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).

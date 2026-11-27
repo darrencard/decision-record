@@ -4,6 +4,11 @@
     python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --json
     python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --usual-days 10
     python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --leader-report run/decisions.md
+    python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop . --bet quote-drafting --html decisions.html
+
+--loop writes the `decisions` key of landing/<bet>.json in that folder (Landing Loop step 01, Decide),
+reading the bet's landing brief and the `portfolio` key, and keeping every other key as it was.
+--html and --md render that key as one page in the Leader Report style and its Markdown twin.
 
 Every number comes from dates and counts in the log. An open decision with no
 opened date has no age: none is made up. The usual time to decide is the median
@@ -22,6 +27,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import declog  # noqa: E402
+import loop  # noqa: E402
+import render_html  # noqa: E402
 
 
 def build(records: list[declog.Record], as_of, usual_days: float | None, escalate_after: int) -> dict:
@@ -50,10 +57,10 @@ def markdown(out: dict) -> str:
         lines.append("")
     lines += [f"## Follow-through as of {ft['as_of']}", ""]
     rate = "no rate yet" if ft["follow_through_rate_pct"] is None else f"{ft['follow_through_rate_pct']}%"
-    counts = f"landed {ft['landed']} · watch {ft['watch']} · stalled {ft['stalled']} · not yet read {ft['not_yet_read']}"
+    counts = f"worked {ft['worked']} · pending {ft['pending']} · missed {ft['missed']} · not yet read {ft['not_yet_read']}"
     lines.append(f"Follow-through: {rate} ({ft['rate_basis']}). {counts}.")
-    if ft["stalled_rows"]:
-        lines += ["", "Stalled: " + "; ".join(f"{r['id']} {r['title']} (owner: {r['owner'] or 'none'})" for r in ft["stalled_rows"])]
+    if ft["missed_rows"]:
+        lines += ["", "Missed: " + "; ".join(f"{r['id']} {r['title']} (owner: {r['owner'] or 'none'})" for r in ft["missed_rows"])]
     for r in ft["review_due"]:
         lines += ["", f"Review due: {r['id']} {r['title']}, {r['days_overdue']} days past {r['review_by']} (owner: {r['owner'] or 'none'})."]
         lines.append(f"- Test against: {r['success_signal'] or 'no success signal was recorded'}")
@@ -90,7 +97,18 @@ def main(argv: list[str] | None = None) -> int:
         metavar="FILE",
         help="Also write the open decisions in the Leader Report's decision format (.md or .csv), for intake.py import --decisions.",
     )
+    p.add_argument("--loop", type=Path, metavar="FOLDER", help="Write the decisions key of FOLDER/landing/<bet>.json.")
+    p.add_argument("--bet", help="The bet's slug, the record's file name (with --loop).")
+    p.add_argument("--brief", type=Path, help="The bet's landing brief, to start a record that does not exist yet (with --loop).")
+    p.add_argument("--html", type=Path, metavar="FILE", help="Render the decisions key as one HTML page (with --loop).")
+    p.add_argument("--md", type=Path, metavar="FILE", help="Its Markdown twin (with --loop).")
+    p.add_argument("--title", help="The page title. Default: the bet's slug, as words.")
+    p.add_argument("--illustrative", action="store_true", help="Mark the record and page illustrative (sample data).")
     a = p.parse_args(argv)
+    if (a.html or a.md or a.bet or a.brief) and not a.loop:
+        raise SystemExit("--bet, --brief, --html and --md go with --loop FOLDER.")
+    if a.loop and not a.bet:
+        raise SystemExit("--loop needs --bet, the bet's slug (its record is landing/<bet>.json).")
     d = declog.parse_date(a.as_of)
     if d is None:
         raise SystemExit(f"--as-of must be YYYY-MM-DD; got {a.as_of!r}")
@@ -105,6 +123,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"refused: the log has {len(out['log_errors'])} invalid record(s). Run record.py validate.", file=sys.stderr)
             return 2
         write_leader_report(a.leader_report, rows, d)
+    if a.loop:
+        try:
+            record, key = loop.run(a.loop, a.bet, a.log, d, a.brief, a.usual_days, a.escalate_after, a.illustrative)
+        except loop.RecordError as err:
+            print(f"refused: {err}", file=sys.stderr)
+            return 2
+        title = a.title or f"Decisions: {a.bet.replace('-', ' ').capitalize()}"
+        if a.html:
+            a.html.write_text(render_html.page(key, record, title), encoding="utf-8")
+        if a.md:
+            a.md.write_text(render_html.markdown(key, record, title), encoding="utf-8")
     print(json.dumps(out, indent=2, ensure_ascii=False) if a.json else markdown(out), end="" if not a.json else "\n")
     return 0
 

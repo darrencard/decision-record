@@ -17,14 +17,13 @@ concurrency:
 jobs:
   tests:
     name: Tests (Python ${{ matrix.python }})
-    # 24.04, not latest: setup-python has no Python 3.9 build for newer Ubuntu images.
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         # The oldest Python the skill supports (pyproject.toml) and a current one.
-        python: ["3.9", "3.13"]
+        python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

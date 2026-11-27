@@ -194,16 +194,16 @@ class TestOtherRules(unittest.TestCase):
         r.success_signal = None
         self.assertIn("no-success-signal", rules(declog.validate(r, AS_OF), "warning"))
 
-    def test_landed_needs_a_success_signal(self):
+    def test_worked_needs_a_success_signal(self):
         r = self.base()
         r.success_signal = None
-        r.outcome, r.outcome_date, r.outcome_evidence = "landed", "2026-11-25", "Complaints at 3 (illustrative)"
-        self.assertIn("landed-without-signal", rules(declog.validate(r, AS_OF), "error"))
+        r.outcome, r.outcome_date, r.outcome_evidence = "worked", "2026-11-25", "Complaints at 3 (illustrative)"
+        self.assertIn("worked-without-signal", rules(declog.validate(r, AS_OF), "error"))
 
-    def test_landed_needs_evidence(self):
+    def test_worked_needs_evidence(self):
         r = self.base()
-        r.outcome, r.outcome_date = "landed", "2026-11-25"
-        self.assertIn("landed-without-evidence", rules(declog.validate(r, AS_OF), "error"))
+        r.outcome, r.outcome_date = "worked", "2026-11-25"
+        self.assertIn("worked-without-evidence", rules(declog.validate(r, AS_OF), "error"))
 
     def test_only_three_outcome_words(self):
         r = self.base()
@@ -212,7 +212,7 @@ class TestOtherRules(unittest.TestCase):
 
     def test_outcome_on_open_record(self):
         r = draft("draft_undecided_open.json")
-        r.outcome, r.outcome_date, r.outcome_evidence = "watch", "2026-11-25", "x"
+        r.outcome, r.outcome_date, r.outcome_evidence = "pending", "2026-11-25", "x"
         self.assertIn("outcome-on-undecided", rules(declog.validate(r, AS_OF), "error"))
 
     def test_one_way_door_without_review_warns(self):
@@ -311,13 +311,13 @@ class TestQueueAndFollowThrough(unittest.TestCase):
     def test_follow_through(self):
         ft = declog.follow_through(self.recs, AS_OF)
         self.assertEqual((ft["decided"], ft["outcome_read"], ft["not_yet_read"]), (4, 3, 1))
-        self.assertEqual((ft["landed"], ft["watch"], ft["stalled"]), (1, 1, 1))
+        self.assertEqual((ft["worked"], ft["pending"], ft["missed"]), (1, 1, 1))
         # Three outcomes read is too few for a rate, so none is printed.
         self.assertIsNone(ft["follow_through_rate_pct"])
         self.assertEqual(ft["rate_basis"], "3 outcome(s) read; 5 are needed before a rate means anything")
         self.assertEqual(ft["median_days_to_decide"], 8.0)
         self.assertEqual(ft["without_success_signal"], 0)
-        self.assertEqual([r["id"] for r in ft["stalled_rows"]], ["D-0002"])
+        self.assertEqual([r["id"] for r in ft["missed_rows"]], ["D-0002"])
         self.assertEqual(ft["review_due"][0]["id"], "D-0003")
         self.assertEqual(ft["review_due"][0]["days_overdue"], 16)
         self.assertEqual(ft["one_way_doors"], 1)
@@ -325,11 +325,11 @@ class TestQueueAndFollowThrough(unittest.TestCase):
 
     def test_rate_appears_at_five_outcomes(self):
         recs = []
-        for i, outcome in enumerate(["landed", "landed", "landed", "watch", "stalled"], start=1):
+        for i, outcome in enumerate(["worked", "worked", "worked", "pending", "missed"], start=1):
             recs.append(declog.Record(id=f"D-{i:04d}", title="x", status="decided", decided_by="Maya Ortiz", date="2026-10-01", outcome=outcome))
         ft = declog.follow_through(recs, AS_OF)
         self.assertEqual(ft["follow_through_rate_pct"], 60)
-        self.assertEqual(ft["rate_basis"], "3 landed of 5 decisions with an outcome read")
+        self.assertEqual(ft["rate_basis"], "3 worked of 5 decisions with an outcome read")
 
     def test_median_needs_three_decided_records(self):
         two = [r for r in self.recs if r.id in ("D-0001", "D-0002", "D-0005")]
@@ -398,9 +398,7 @@ class TestRecordCli(unittest.TestCase):
 
     def test_decide_an_open_record_needs_a_named_person(self):
         self.append("draft_undecided_open.json")
-        code, _ = self.cli(
-            "decide", "D-0001", "--decided-by", "everyone", "--date", "2026-11-25", "--evidence", "x", "--as-of", "2026-11-26", "--log", self.log
-        )
+        code, _ = self.cli("decide", "D-0001", "--decided-by", "everyone", "--date", "2026-11-25", "--evidence", "x", "--as-of", "2026-11-26", "--log", self.log)
         self.assertEqual(code, record.REFUSED)
         self.assertEqual(declog.parse_log(self.log.read_text(encoding="utf-8"))[0].status, "open")
 
@@ -438,14 +436,14 @@ class TestRecordCli(unittest.TestCase):
         r = declog.parse_log(self.log.read_text(encoding="utf-8"))[0]
         self.assertEqual((r.status, r.decided_by, r.waiting_on), ("decided", "Raj Mehta", None))
         self.assertEqual(declog.days_to_decide([r]), [7])
-        code, out = self.cli("outcome", "D-0001", "--outcome", "landed", "--date", "2026-11-26", "--as-of", "2026-11-26", "--log", self.log)
+        code, out = self.cli("outcome", "D-0001", "--outcome", "worked", "--date", "2026-11-26", "--as-of", "2026-11-26", "--log", self.log)
         self.assertEqual(code, record.REFUSED)
-        self.assertIn("landed-without-evidence", {e["rule"] for e in out["errors"]})
+        self.assertIn("worked-without-evidence", {e["rule"] for e in out["errors"]})
         code, _ = self.cli(
             "outcome",
             "D-0001",
             "--outcome",
-            "watch",
+            "pending",
             "--date",
             "2026-11-26",
             "--evidence",
@@ -608,11 +606,17 @@ class TestLeaderReportExport(unittest.TestCase):
 
 class TestRepoHygiene(unittest.TestCase):
     # Built from code points so this file does not hold the characters it bans.
-    BANNED = [chr(0x2014), "AI-powered", "unlock", "supercharge", "seamless", "robust", "get started"]
+    BANNED = [chr(0x2014), "AI-powered", "unlock", "supercharge", "seamless", "robust", "get started", "sign up", "leverage"]
 
     def files(self):
         for p in ROOT.rglob("*"):
-            if p.is_file() and ".git" not in p.parts and p.suffix in {".md", ".py", ".json", ".txt", ".yml", ".toml"} and p.name != Path(__file__).name:
+            if (
+                p.is_file()
+                and ".git" not in p.parts
+                and p.suffix in {".md", ".py", ".json", ".txt", ".yml", ".toml", ".html"}
+                and p.name != Path(__file__).name
+                and "vendor" not in p.parts
+            ):
                 yield p
 
     def test_no_banned_words_or_em_dashes(self):
@@ -624,8 +628,16 @@ class TestRepoHygiene(unittest.TestCase):
     def test_versions_agree(self):
         plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         skill = (ROOT / "skills" / "decision-record" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertEqual(plugin["version"], "0.2.0")
-        self.assertIn('version: "0.2.0"', skill)
+        project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        sys.path.insert(0, str(SCRIPTS))
+        import loop
+
+        self.assertEqual(plugin["version"], "0.3.0")
+        self.assertIn('version: "0.3.0"', skill)
+        self.assertIn('version = "0.3.0"', project)
+        self.assertIn("## 0.3.0, 2026-11-26", changelog)
+        self.assertEqual(loop.VERSION, "0.3.0")
 
 
 if __name__ == "__main__":

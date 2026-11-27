@@ -1,0 +1,16 @@
+{
+  "title": "Prices come from the price book, never the model",
+  "status": "decided",
+  "decision": "The model drafts the quote text only. Every price comes from the price book in fixed code.",
+  "options": ["Prices from the price book", "Model suggests prices"],
+  "chosen": "Prices from the price book",
+  "decided_by": "Priya Raman",
+  "date": "2026-07-27",
+  "owner": "Tom Okafor",
+  "review_by": "2026-11-15",
+  "reversible": "yes",
+  "success_signal": "No sent quote carries a price that differs from the price book, checked weekly to 2026-11-15 (illustrative).",
+  "opened": "2026-07-22",
+  "source": "Acme decide call, 2026-07-27 (illustrative)",
+  "evidence": "Prices come from the price book in fixed code. That is my call for v1."
+}

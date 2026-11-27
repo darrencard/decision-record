@@ -1,17 +1,17 @@
 ---
 name: decision-record
-description: Turns a Slack thread, meeting notes or a call transcript into a decision record (the decision, options considered, who decided, date, owner, review date, and whether it can be undone) and appends it to a Markdown decisions log. Refuses to mark anything decided without a named person who made the call and their line from the source as evidence; logs it as open instead. Also lists open decisions with days waiting and on whom, and reads follow-through (landed, watch, stalled) on past calls. Use when the user pastes or points to a thread, notes or transcript and asks to record, log or capture a decision, asks "what did we decide", asks for an ADR or decision log entry, or asks which decisions are open, overdue, stuck or waiting on someone.
+description: Turns a Slack thread, meeting notes or a call transcript into a decision record (the decision, options considered, who decided, date, owner, review date, and whether it can be undone) and appends it to a Markdown decisions log. Refuses to mark anything decided without a named person who made the call and their line from the source as evidence; logs it as open instead. Also lists open decisions with days waiting and on whom, reads follow-through (worked, pending, missed) on past calls, and writes the decisions key of the Landing Loop record (step 01, Decide) in the Leader Report's decision format. Use when the user pastes or points to a thread, notes or transcript and asks to record, log or capture a decision, asks "what did we decide", asks for an ADR or decision log entry, or asks which decisions are open, overdue, stuck or waiting on someone, or asks to feed decisions into the Landing Loop or the Leader Report.
 license: MIT. See LICENSE in the repository root.
 metadata:
   author: Dacard
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # Decision record
 
 Writes one record per decision into a decisions log the team can read and diff, and reads that log back: what is still waiting, on whom, for how long, and whether past calls followed through.
 
-Everything runs locally. The scripts are Python standard library only and make no network calls.
+Everything runs locally. The scripts are Python 3.11 or later, standard library only, and make no network calls.
 
 ## The 3 rules that override everything else
 
@@ -38,7 +38,7 @@ Work from the skill's root. Ask the user for today's date if you do not know it:
 - [ ] 6. Append            scripts/record.py append
 ```
 
-1. **Save the source** verbatim to a text file (for example `run/source.txt`). Do not tidy it: the evidence check matches words exactly. Speaker lines like `[2026-11-12 10:15] Name: text`, `Name (00:12:03): text` and `Name: text` are all read, and a Slack handle such as `@maya.ortiz` matches the name Maya Ortiz.
+1. **Save the source** verbatim to a text file (for example `run/source.txt`). Do not tidy it: the evidence check matches words exactly. Live first: save what the Slack or Linear connector returns, as it stands, and run `python3 scripts/from_thread.py --slack history.json [--users users.json] --out run/source.txt` (or `--linear comments.json`). Anything else: a CSV with columns when, who, text (`--csv`), or the pasted text. Speaker lines like `[2026-11-12 10:15] Name: text`, `Name (00:12:03): text` and `Name: text` are all read, and a Slack handle such as `@maya.ortiz` matches the name Maya Ortiz.
 2. **Scan.** `python3 scripts/scan.py run/source.txt` lists speakers, dates and the lines that sound like a call being made, deferred or asked. It finds candidates only. Decision language is not a decision.
 3. **Draft** `run/draft.json` with these keys (leave out what the source does not say; never fill a gap with a guess):
    - `title`: the decision in under 12 words.
@@ -48,7 +48,7 @@ Work from the skill's root. Ask the user for today's date if you do not know it:
    - `decided_by`: the one person who made the call. `date`: when they made it, `YYYY-MM-DD`.
    - `owner`: who carries it out. `review_by`: when to check it worked.
    - `reversible`: `yes`, `no` or `unknown`. Take it from the source; if nobody said, `unknown`.
-   - `success_signal`: the result that would show it worked, with a metric, a threshold and a date. Take it from the source; if nobody said, leave it out and ask the user for one before writing. Without it, the review has nothing to test and the record can never be `landed`.
+   - `success_signal`: the result that would show it worked, with a metric, a threshold and a date. Take it from the source; if nobody said, leave it out and ask the user for one before writing. Without it, the review has nothing to test and the record can never be `worked`.
    - `assumptions`: what the call rests on, one per item, if the source says. A review tests these.
    - `opened`: when the question was first raised. This is what lets the log age a call.
    - `waiting_on`: for an open record, the one person the call needs. `decide_by`: the date the call is needed by, if the source gives one.
@@ -64,17 +64,33 @@ A thread with several decisions gets one draft and one append per decision. A th
 
 - An open call gets made: `python3 scripts/record.py decide D-0005 --decided-by "Name" --date YYYY-MM-DD --evidence "their words" --source run/followup.txt --as-of ... --log decisions.md` (plus `--chosen`, `--owner`, `--review-by`, `--reversible`, `--success-signal` when the source gives them).
 - An open call is no longer needed: `python3 scripts/record.py drop D-0005 --because "reason" --as-of ... --log decisions.md`.
-- A review comes due: `python3 scripts/record.py outcome D-0001 --outcome landed|watch|stalled --date YYYY-MM-DD --evidence "what the result was, and where it came from" --as-of ... --log decisions.md`. `landed` needs a success signal and evidence of the result against it; without them, the most a record can say is `watch`.
+- A review comes due: `python3 scripts/record.py outcome D-0001 --outcome worked|pending|missed --date YYYY-MM-DD --evidence "what the result was, and where it came from" --as-of ... --log decisions.md`. `worked` needs a success signal and evidence of the result against it; without them, the most a record can say is `pending`.
 
 ## Workflow: open decisions and follow-through
 
 `python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD` prints both reads as Markdown (`--json` for the raw figures).
 
 - **Open decisions**, oldest first: days waiting, on whom, and a flag. A call is past due when it has waited longer than a decision usually takes in this log (the median days from opened to decided across its own records), or `--usual-days N` if the user sets a target. It escalates when it is past due by 14 more days (`--escalate-after`) and nobody is named to make it. A call with no opened date has no age: say so, never estimate one.
-- **Follow-through**: of the decisions whose outcome has been read, how many landed, are on watch or stalled, and the reviews that are due, each with its success signal and assumptions so the review tests what the call said it would do. A decision nobody has checked counts as not yet read, never as landed.
+- **Follow-through**: of the decisions whose outcome has been read, how many worked, are pending or missed, and the reviews that are due, each with its success signal and assumptions so the review tests what the call said it would do. A decision nobody has checked counts as not yet read, never as worked.
 - **Small numbers stay counts.** The usual time to decide needs 3 decided records with an opened date; the follow-through rate needs 5 outcomes read. Below that the script prints counts and says why there is no median or rate. Report it that way: do not work one out.
 
-Lead with the headline line the script prints. Then name each past-due or escalated call and the person it waits on. Use only the words landed, watch and stalled for outcomes.
+Lead with the headline line the script prints. Then name each past-due or escalated call and the person it waits on. Use only the words worked, pending and missed for a decision's outcome. Landed, watch and stalled are a bet's status: only did-it-land sets them, and this skill never uses them.
+
+## Landing Loop: write the decisions key (step 01, Decide)
+
+The loop keeps one record per bet, `landing/<bet>.json`. This skill reads the bet's landing brief and the `portfolio` key (bet-portfolio-review's), and writes only the `decisions` key. It reads no key later in the record order (portfolio, decisions, spec, release, cost, evals, landed, signals, postmortem, board_qa), and keeps every other key exactly as it found it.
+
+```bash
+python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop FOLDER --bet SLUG --html decisions.html --md decisions-read.md
+```
+
+- With no record yet, add `--brief briefs/<bet>.md` to start one. The brief is read by the Leader Report's own parser (`scripts/landing_brief.py`, vendored byte-identical); a brief with any part missing is refused with every problem listed. Never write a brief parser or keyword list of your own.
+- A brief edited after the record opened (its sha256 changed), or an invalid log, is refused and nothing is written. Say so, and name the fix.
+- `rows` are the open decisions in the Leader Report's decision format, so its decision slide reads them unchanged. `decided` lists each call with the one person who made it. `brief.tested_by` names the decided record whose success signal is the brief's bar; if none does, it is listed under `gaps`. Without a `portfolio` key, that is a gap too: say "portfolio not read: run bet-portfolio-review first".
+- Every figure (open, decided, past due, oldest open, usual days to decide, days waiting and days to decide per record) carries value, unit, source, window and as_of, counted in code. Quote them; never work one out.
+- The page uses brass only for a person's call: who decided, who a call waits on, the deadline. It has no status colour, and says open or decided, never a bet's status.
+
+Then hand on: the next step in the loop is 02 Spec, spec-auditor on the bet's spec.
 
 ## Feed the Leader Report's decision slide
 
@@ -96,7 +112,7 @@ Teams that keep `decisions.md` in a repository can block a hand-edited record in
 
 ## Rules the validator enforces
 
-Errors block the write: `no-decider`, `decider-not-a-person`, `decider-not-in-source`, `no-decision-date`, `no-evidence`, `evidence-not-in-source`, `date-not-evidence-date`, `landed-without-signal`, `one-way-door-no-signal`, `no-decision-text`, `date-invalid`, `date-in-future`, `review-before-decision`, `chosen-not-an-option`, `status-invalid`, `reversible-invalid`, `open-with-decider`, `drop-without-reason`, `outcome-invalid`, `outcome-on-undecided`, `outcome-without-date`, `outcome-before-decision`, `landed-without-evidence`, `duplicate-id`, `id-invalid`.
+Errors block the write: `no-decider`, `decider-not-a-person`, `decider-not-in-source`, `no-decision-date`, `no-evidence`, `evidence-not-in-source`, `date-not-evidence-date`, `worked-without-signal`, `one-way-door-no-signal`, `no-decision-text`, `date-invalid`, `date-in-future`, `review-before-decision`, `chosen-not-an-option`, `status-invalid`, `reversible-invalid`, `open-with-decider`, `drop-without-reason`, `outcome-invalid`, `outcome-on-undecided`, `outcome-without-date`, `outcome-before-decision`, `worked-without-evidence`, `duplicate-id`, `id-invalid`.
 
 Warnings are shown and allowed: `no-success-signal`, `no-owner`, `no-review-date`, `reversibility-unknown`, `one-way-door-no-review`, `one-option`, `evidence-from-someone-else`, `no-opened-date`, `waiting-on-nobody`, `waiting-on-not-a-person`, `waiting-on-not-in-source`.
 

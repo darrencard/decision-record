@@ -1,0 +1,17 @@
+{
+  "title": "Build quote drafting now, against its landing brief",
+  "status": "decided",
+  "decision": "The Quoting squad builds quote drafting now, against the landing brief as written, with a review on the brief's date.",
+  "options": ["Build quote drafting now", "Hold it until auto-match ships"],
+  "chosen": "Build quote drafting now",
+  "decided_by": "Maya Ortiz",
+  "date": "2026-07-27",
+  "owner": "Tom Okafor",
+  "review_by": "2026-11-15",
+  "reversible": "yes",
+  "success_signal": "Quote draft acceptance rate at 40% or higher by 2026-11-15, as the landing brief sets.",
+  "assumptions": ["Tradespeople accept a draft they can edit", "9,000 tokens per task is enough for a full quote"],
+  "opened": "2026-07-20",
+  "source": "Acme decide call, 2026-07-27 (illustrative)",
+  "evidence": "My call: we build quote drafting now, against the brief as written, and we review it on 15 November."
+}
