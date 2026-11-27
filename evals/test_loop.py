@@ -439,6 +439,15 @@ class Page(unittest.TestCase):
         self.assertNotIn("position:absolute", svgkit.SCORECARD_CSS)
         self.assertNotIn('class="chip', self.body, "words print as text, never boxed chips")
 
+    def test_no_legacy_svgkit_primitive_draws_on_the_page(self):
+        import warnings
+
+        self.assertEqual(svgkit.legacy_in(self.html), [])
+        key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            render_html.page(key, {}, "T")
+
     def test_open_calls_show_open_and_who_they_wait_on(self):
         records = declog.parse_log((ACME / "decide-step" / "decisions.md").read_text(encoding="utf-8"))
         key = loop.build(records, date.fromisoformat(DECIDE_STEP), {"path": "decisions.md", "sha256": "0" * 64}, landing_brief_for_acme(), None)
@@ -501,7 +510,7 @@ class Page(unittest.TestCase):
 
     def test_svgkit_matches_its_landing_loop_pin(self):
         pin = json.loads((SKILL / "VENDORED.json").read_text(encoding="utf-8"))["landing-loop"]
-        self.assertEqual(pin["commit"], "02102183acd0cfb48775363483853c0aa8d07c15")
+        self.assertEqual(pin["commit"], "78784efd2ecd5282f6ec264e545ce2075e459be2")
         self.assertEqual(set(pin["files"]), {"scripts/vendor/svgkit.py"})
         for rel, info in pin["files"].items():
             digest = hashlib.sha256((SKILL / rel).read_bytes()).hexdigest()

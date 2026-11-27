@@ -1,6 +1,6 @@
 # Decisions on quote drafting
 
-Read 2026-11-26 · Decision record 0.3.2 · Illustrative
+Read 2026-11-26 · Decision record 0.3.3 · Illustrative
 
 **All five decisions are made; none is open. Two took longer than usual to decide.**
 
@@ -59,7 +59,7 @@ Review all five decisions against their success signals. Decides: Head of Produc
 
 ## For your engineers
 
-Skill: decision-record 0.3.2.
+Skill: decision-record 0.3.3.
 
 Each decider's words, checked word for word against the source:
 
@@ -71,16 +71,16 @@ Each decider's words, checked word for word against the source:
 
 | Key name | Source |
 |---|---|
-| open | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d) |
-| decided | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d) |
-| waiting_long | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d) |
-| past_due | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); open with a decide-by date before as_of |
-| waiting_on_nobody | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d) |
-| usual_days_to_decide | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided |
-| days_to_decide@D-0001 | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
-| days_to_decide@D-0002 | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
-| days_to_decide@D-0003 | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
-| days_to_decide@D-0004 | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
-| days_to_decide@D-0005 | decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| open | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d) |
+| decided | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d) |
+| waiting_long | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d) |
+| past_due | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); open with a decide-by date before as_of |
+| waiting_on_nobody | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d) |
+| usual_days_to_decide | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided |
+| days_to_decide@D-0001 | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0002 | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0003 | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0004 | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0005 | decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
 
 Log: decisions.md, sha256 096127d5d48d. Model ids as written: vendor-a/m is the mid-size model, vendor-a/xl the large model.

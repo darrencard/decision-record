@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3, 2026-11-27
+
+- The decider column wraps at 180px (svgkit 1.2.0), so "Head of Product, Quoting squad" takes two lines and the decision's name keeps its room. Rows stack when the frame is under 800px wide (a container query, as on the site).
+- svgkit 1.2.0, vendored byte-identical from landing-loop 78784ef and pinned in `VENDORED.json`. Test: no legacy svgkit primitive on the page (rendered with its DeprecationWarning as an error, and `legacy_in` empty).
+
 ## 0.3.2, 2026-11-27
 
 - The page's picture is now scorecard rows in the grammar of the outcome scorecard on dacard.ai/update, not a scaled timeline: one row per decision with its name, the plan (the log's usual 14 days, printed once in the frame head as "PLAN 14 DAYS") in grey above the days it took in ink, both scaled to the longest, the part past the plan hatched, `28 DAYS` right-aligned, and who decided in brass text with a small person mark. Open calls print OPEN and who they wait on. Labels and figures are Geist Mono 12px and names Geist 14px as rendered; no text sits inside an SVG and no picture scales.

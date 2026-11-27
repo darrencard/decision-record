@@ -7,7 +7,7 @@ landing-loop). Only a few rules for this page's layout are added.
 
 It reads top down for someone who has never seen the loop: the shared header, the verdict as the heading, the days
 each decision took as scorecard rows (name, plan and actual bars, `28 DAYS`, the decider in brass), then one thing
-to do next. The rows follow the scorecard grammar (svgkit 1.1.0): HTML rows split by hairlines, Geist Mono 12px for
+to do next. The rows follow the scorecard grammar (svgkit 1.2.0): HTML rows split by hairlines, Geist Mono 12px for
 labels and figures, Geist 14px for names, fixed-height bars with no text in them. The plan is the log's usual time
 to decide, printed once in the frame head ("PLAN 14 DAYS"); the part of a bar past it is hatched, because hatching
 means over plan and nothing else.
