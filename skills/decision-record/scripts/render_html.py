@@ -36,6 +36,8 @@ import svgkit as sk  # noqa: E402  (vendored, unchanged; see VENDORED.json)
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "vendor" / "template.html"
 STYLE = re.compile(r"<style>(.*?)</style>", re.S)
+NAME = "Decision record"  # the page prints its plain name; the code name sits in the engineers' fold
+MIN_FONT_PX = 11  # no text on the page prints smaller, at any width
 
 # Layout for this page only. Everything else comes from the template's stylesheet and svgkit.CSS. The template paints
 # selection and the focus ring green, a status colour; this page sets both to ink.
@@ -51,14 +53,14 @@ main.solo{margin-left:0}
 .cols{display:grid;grid-template-columns:minmax(0,640px) minmax(260px,1fr);gap:28px 48px;align-items:start}
 .side{display:grid;gap:24px}
 .next{display:grid;gap:10px;border:1px solid var(--brass);border-radius:12px;padding:20px 22px;background:var(--brass-bg)}
-.next>b{font:400 10px/16px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--brass)}
+.next>b{font:400 11px/16px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--brass)}
 .next p{margin:0;font-size:16px;line-height:1.5;color:var(--t1)}
 .next .whom{display:flex;flex-wrap:wrap;gap:4px 24px;font:400 11.5px/18px var(--mono);color:var(--brass)}
-.next .whom i{font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-right:8px}
+.next .whom i{font-style:normal;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-right:8px}
 .next .whom .d{color:var(--t2)}
 .figs{margin:0;display:grid}
 .figs>div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 16px;border-top:1px solid var(--line);padding:10px 0}
-.figs dt{font:400 10px/22px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.figs dt{font:400 11px/22px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
 .figs dd{margin:0;font-size:13.5px;line-height:1.55;color:var(--t2)}
 .figs dd b{color:var(--t1);font-weight:500}
 .figs ul{margin:0;padding-left:16px}
@@ -66,7 +68,7 @@ main.solo{margin-left:0}
 .calls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--s1)}
 .call{padding:20px 24px 14px;box-shadow:-1px 0 0 var(--line),0 -1px 0 var(--line)}
 .call h3{margin:0 0 10px;font:600 18px/1.25 var(--display);text-transform:none;letter-spacing:-.02em;color:var(--t1)}
-.call h3 .rk{display:block;font:400 10px/16px var(--mono);letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.call h3 .rk{display:block;font:400 11px/16px var(--mono);letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
 .call .figs>div:first-child{border-top:0}
 .call details{margin-top:4px}
 .chip.flag{color:var(--t1);border-color:var(--t1);margin-left:8px}
@@ -98,7 +100,7 @@ WORDS = (
     (r"\bChoose the model tier for\b", "Choose the AI model for"),
     (r"\bvendor-a/xl\b", "the large model"),
     (r"\bvendor-a/m\b", "the mid-size model"),
-    (r"\b(\d[\d,]*) tokens per task\b", r"\1 tokens of AI usage per task"),
+    (r"\b(\d[\d,]*) tokens per task\b", r"AI usage of \1 per task"),
     (r"\b[Tt]okens per task\b", "AI usage per task"),
     (r"\bthe brief's\b", "the landing brief's"),
     (r"\bspec hold\b", "build plan hold"),
@@ -158,6 +160,16 @@ def stylesheet() -> str:
     except OSError:
         found = None
     return found.group(1) if found else ""
+
+
+def floor_fonts(css: str) -> str:
+    """Every font size in the page's CSS at MIN_FONT_PX or more. The vendored template and svgkit stay byte-identical;
+    their smaller label sizes are raised here, as the page is written. A line height (after the slash) is left alone."""
+
+    def raise_px(decl: re.Match[str]) -> str:
+        return re.sub(r"(?<![/\d.])(\d+(?:\.\d+)?)px", lambda m: f"{MIN_FONT_PX}px" if float(m.group(1)) < MIN_FONT_PX else m.group(0), decl.group(0))
+
+    return re.sub(r"font(?:-size)?:[^;}]*", raise_px, css)
 
 
 def plural(n: int, word: str) -> str:
@@ -461,7 +473,7 @@ def read_rows(key: dict[str, Any], record: dict[str, Any]) -> str:
         text = "; ".join(parts)
         rows.append(("Portfolio", f"{text[:1].upper() + text[1:]}, from the portfolio review of {e(p.get('as_of'))}"))
     else:
-        rows.append(("Portfolio", "Not read yet: run bet-portfolio-review first."))
+        rows.append(("Portfolio", "Not read yet: run the portfolio review first."))
     rows += [("Gap", e(plain(g))) for g in key["gaps"]]
     return '<dl class="figs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
 
@@ -482,7 +494,7 @@ def engineers(key: dict[str, Any], record: dict[str, Any]) -> str:
     body = "".join(f'<tr><td class="mono">{e(n)}</td><td>{e(f["source"])}</td></tr>' for n, f in key["figures"].items())
     p = record.get("portfolio")
     note = (
-        f'<p class="note">Written by {e(key["tool"])} with <code>--loop</code> and <code>--bet</code>: the <code>decisions</code> key of '
+        f'<p class="note">Skill: <code>{e(key["tool"].rsplit(" ", 1)[0])}</code> {e(key["tool"].rsplit(" ", 1)[-1])}. Written with <code>--loop</code> and <code>--bet</code>: the <code>decisions</code> key of '
         f"<code>landing/{e(record.get('bet', '<slug>'))}.json</code>, and no other key. Log: <code>{e(key['log']['path'])}</code>, sha256 "
         f"<code>{e(key['log']['sha256'][:12])}</code>. Open decisions are the Leader Report's decision rows ({e(', '.join(key['columns']))}). "
         f"Portfolio read from {e(p.get('tool', 'bet-portfolio-review') if isinstance(p, dict) else 'nothing')}. "
@@ -493,7 +505,7 @@ def engineers(key: dict[str, Any], record: dict[str, Any]) -> str:
 
 def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     version = "v" + key["tool"].rsplit(" ", 1)[-1]
-    header = sk.page_header("decision-record", date=f"Read {key['as_of']}", version=version, illustrative=bool(key.get("illustrative")))
+    header = sk.page_header(NAME, date=f"Read {key['as_of']}", version=version, illustrative=bool(key.get("illustrative")))
     b = key["brief"]
     lede_html = (
         f"{e(title)}: every call on this project names the one person who made it, or the one person it waits on, in their own words. "
@@ -512,11 +524,11 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
         opens = f'<section class="slide"><div class="meta"><span>Open</span></div><h2>Waiting on a named person</h2>{blocks}</section>'
     calls = "".join(call_card(key, d) for d in key["decided"])
     decided = f'<section class="slide"><div class="meta"><span>Decided</span></div><h2>Who made each call</h2><div class="calls">{calls}</div></section>' if calls else ""
-    read = f'<section class="slide"><div class="meta"><span>Read</span></div><h2>What the record read</h2>{read_rows(key, record)}</section>'
+    read = f'<section class="slide"><div class="meta"><span>Read</span></div><h2>What this read</h2>{read_rows(key, record)}</section>'
     detail = f'<section class="slide"><div class="meta"><span>Detail</span></div>{ledger(key)}{engineers(key, record)}</section>'
     return (
         '<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        f'<title>{e(title)}</title><style>{stylesheet()}{sk.CSS}{PAGE_CSS}</style></head><body><main class="solo">'
+        f'<title>{e(title)}</title><style>{floor_fonts(stylesheet() + sk.CSS + PAGE_CSS)}</style></head><body><main class="solo">'
         f"{cover}{opens}{decided}{read}{detail}"
         '<p class="foot">Every figure is counted in code from the decision log, and every decider\'s words are checked against the source word for word. '
         "A decision is open or decided. Whether the project met its target is did-it-land's call, later in the loop.</p></main></body></html>\n"
@@ -525,7 +537,7 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
 
 def markdown(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     """The plain-text twin of the page."""
-    out = [f"# {title}", "", f"Read {key['as_of']} · {key['tool']}" + (" · Illustrative" if key.get("illustrative") else ""), ""]
+    out = [f"# {title}", "", f"Read {key['as_of']} · {NAME} {key['tool'].rsplit(' ', 1)[-1]}" + (" · Illustrative" if key.get("illustrative") else ""), ""]
     out += [f"**{verdict(key)}**", "", lede(key), ""]
     step, who, role, when = next_step(key)
     out += ["## What to do next", "", f"{step} {role}: {who}. When: {when}.", ""]
@@ -554,17 +566,17 @@ def markdown(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
         out.append(f"  Can be undone: {d['reversible'] or 'unknown'}. Success signal: {plain(d['success_signal'] or 'none recorded')}")
         out += [f"  Assumes: {plain(x)}" for x in d.get("assumptions") or []]
     b = key["brief"]
-    out += ["", "## What the record read", "", f"- Target: {b['metric']}, {b['bar']} or {b['better']} by {b['by']}. Tested by {', '.join(b['tested_by']) or 'no decision yet'}."]
+    out += ["", "## What this read", "", f"- Target: {b['metric']}, {b['bar']} or {b['better']} by {b['by']}. Tested by {', '.join(b['tested_by']) or 'no decision yet'}."]
     p = record.get("portfolio")
     if isinstance(p, dict):
         parts = portfolio_parts(p)
         out.append(f"- Portfolio review of {p.get('as_of')}: " + "; ".join(parts) + ".")
     else:
-        out.append("- Portfolio: not read yet. Run bet-portfolio-review first.")
+        out.append("- Portfolio: not read yet. Run the portfolio review first.")
     out += [f"- Gap: {plain(g)}" for g in key["gaps"]]
     out += ["", "## Evidence", "", "| Figure | Value | Window |", "|---|---|---|"]
     out += [f"| {figure_name(n)} | {figure_text(f)} | {f['window']['from']} to {f['window']['to']} |" for n, f in key["figures"].items()]
-    out += ["", "## For your engineers", "", "Each decider's words, checked word for word against the source:", ""]
+    out += ["", "## For your engineers", "", f"Skill: {key['tool']}.", "", "Each decider's words, checked word for word against the source:", ""]
     out += [f'- {d["id"]}: "{d["evidence"]}" ({d["source"]})' for d in key["decided"]]
     out += ["", "| Key name | Source |", "|---|---|"]
     out += [f"| {n} | {f['source']} |" for n, f in key["figures"].items()]

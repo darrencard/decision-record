@@ -266,7 +266,7 @@ class LoopRecord(Work):
         self.assertEqual(key["brief"]["tested_by"], ["D-0001"])
         self.assertEqual(key["decided"][0]["decided_by"], key["brief"]["decides"])  # the brief's own scoped role
         self.assertIsNone(key["next_step_by"])  # nothing is open on 2026-11-26
-        self.assertEqual(key["next_step"], "No open decisions on this bet.")
+        self.assertEqual(key["next_step"], "No open decisions on this project.")
         self.assertEqual(key["next_in_loop"], "")  # no hand-on line while nothing is open
         self.assertEqual(key["rows"], [])
 
@@ -449,6 +449,37 @@ class Page(unittest.TestCase):
         md = (ACME / "decision-record.md").read_text(encoding="utf-8").split("## For your engineers", 1)[0].lower()
         for word in (" bet ", " bets ", "rollback", "roll back", "vendor-a", "tokens per task"):
             self.assertNotIn(word, md, word)
+
+    def test_no_text_smaller_than_11px(self):
+        css = "".join(re.findall(r"<style>(.*?)</style>", self.html, re.S))
+        decls = re.findall(r"font(?:-size)?:[^;}]*", css)
+        self.assertTrue(decls)
+        sizes = [float(n) for d in decls for n in re.findall(r"(?<![/\d.])(\d+(?:\.\d+)?)px", d)]
+        self.assertGreaterEqual(min(sizes), 11, "a font size below 11px")
+        self.assertNotRegex(self.html, r'font-size="(\d|10)(\.\d+)?"', "an SVG label below 11px")
+        template = (SKILL / "assets" / "vendor" / "template.html").read_text(encoding="utf-8")
+        self.assertIn("font:400 10px/16px var(--mono)", template, "the template stays as vendored; the page raises its sizes")
+
+    def test_header_prints_the_plain_name_and_the_fold_the_code_name(self):
+        header = re.search(r'<header class="sk-hdr">.*?</header>', self.html, re.S).group(0)
+        self.assertIn("<span>Decision record</span>", header)
+        self.assertNotIn("decision-record", header)
+        fold = self.html.split("<summary>For your engineers</summary>", 1)[1]
+        self.assertRegex(fold, r"Skill: <code>decision-record</code> \d")
+        md = (ACME / "decision-record.md").read_text(encoding="utf-8")
+        self.assertRegex(md.splitlines()[2], r"^Read \S+ · Decision record \d")
+        self.assertRegex(md.split("## For your engineers", 1)[1], r"Skill: decision-record \d")
+
+    def test_no_internal_words_in_public_copy(self):
+        # The page's own name, Decision record, is the one exception.
+        banned = re.compile(r"\b(records?|bets?|the bar|PRDs?|ARR|tokens?)\b", re.I)
+        public = re.sub(r"<details><summary>For your engineers</summary>.*?</details>", " ", self.html.split("</style>", 1)[1], flags=re.S)
+        text = svgkit.page_text(public).replace("DECISION RECORD", "")
+        self.assertIsNone(banned.search(text), "internal word on the page")
+        self.assertIn("<h2>What this read</h2>", self.html)
+        self.assertIn("AI usage of 9,000 per task", self.html)
+        md = (ACME / "decision-record.md").read_text(encoding="utf-8").split("## For your engineers", 1)[0].replace("Decision record", "")
+        self.assertIsNone(banned.search(md), "internal word in the Markdown twin")
 
     def test_svgkit_matches_its_landing_loop_pin(self):
         pin = json.loads((SKILL / "VENDORED.json").read_text(encoding="utf-8"))["landing-loop"]

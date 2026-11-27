@@ -175,7 +175,7 @@ def build(
         ask = ask[:1].lower() + ask[1:] if ask[1:2].islower() else ask
         next_step = f"{first['id']} waits on {who or 'nobody named'}: {ask}" + (f" by {row['deadline']}." if row["deadline"] else ".")
     else:
-        who, next_step = None, "No open decisions on this bet."
+        who, next_step = None, "No open decisions on this project."
     key: dict[str, Any] = {
         "tool": TOOL,
         "as_of": day,

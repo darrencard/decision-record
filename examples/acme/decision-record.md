@@ -1,6 +1,6 @@
 # Decisions on quote drafting
 
-Read 2026-11-26 · decision-record 0.3.1 · Illustrative
+Read 2026-11-26 · Decision record 0.3.1 · Illustrative
 
 **All five decisions are made; none is open. Two took longer than usual to decide.**
 
@@ -15,7 +15,7 @@ Review all five decisions against their success signals. Decides: Head of Produc
 - D-0001 Build quote drafting now, against its landing brief. Chosen: Build quote drafting now. Head of Product, Quoting squad decided on 2026-07-27, 7 days after it was opened. Owner Lead, Quoting squad, review by 2026-11-15.
   Can be undone: yes. Success signal: Quote draft acceptance rate at 40% or higher by 2026-11-15, as the landing brief sets.
   Assumes: Tradespeople accept a draft they can edit
-  Assumes: 9,000 tokens of AI usage per task is enough for a full quote
+  Assumes: AI usage of 9,000 per task is enough for a full quote
 - D-0002 Quote drafts wait for the tradesperson's approval before they send. Chosen: Approve before send. Head of Product, Quoting squad decided on 2026-07-27, 14 days after it was opened. Owner Lead, Quoting squad, review by 2026-11-15.
   Can be undone: yes. Success signal: Wrong-line-item complaints below 5 a month by 2026-11-15 (illustrative).
   Assumes: Most wrong line items are caught when the tradesperson reads the draft
@@ -26,7 +26,7 @@ Review all five decisions against their success signals. Decides: Head of Produc
 - D-0005 Choose the AI model for quote drafts. Chosen: The mid-size model. Tech lead, Quoting squad decided on 2026-08-10, 21 days after it was opened, longer than the usual 14. Owner Tech lead, Quoting squad, review by 2026-11-15.
   Can be undone: yes. Success signal: AI usage per task within the landing brief's 9,000 budget to 2026-11-15 (illustrative).
 
-## What the record read
+## What this read
 
 - Target: Quote draft acceptance rate, 40% or higher by 2026-11-15. Tested by D-0001.
 - Portfolio review of 2026-07-27: rank 4 of 8; readiness 14 of 14 points.
@@ -48,6 +48,8 @@ Review all five decisions against their success signals. Decides: Head of Produc
 | Days to decide, D-0005 | 21 days | 2026-07-20 to 2026-08-10 |
 
 ## For your engineers
+
+Skill: decision-record 0.3.1.
 
 Each decider's words, checked word for word against the source:
 

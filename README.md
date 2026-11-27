@@ -86,7 +86,7 @@ Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report'
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
   "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
               "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
-  "next_step": "No open decisions on this bet."
+  "next_step": "No open decisions on this project."
 }
 ```
 
