@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Regenerate the committed Acme sample: decisions.md, decision-record.html, decision-record.md,
-leader-report-decisions.md and the decisions key of landing/quote-drafting.json, all as of 2026-07-27,
-the Decide step. Then the same log read later: later/decisions.md and later/open-decisions.md.
+"""Regenerate the committed Acme sample: the log decisions.md, decision-record.html, decision-record.md,
+leader-report-decisions.md and the decisions key of landing/quote-drafting.json, all read as of 2026-11-26.
+Also the Decide-step view: decide-step/decisions.md and decide-step/open-decisions.md, as of 2026-07-27.
 
 Inputs, all illustrative (Acme is an invented company): the canonical briefs in briefs/ (copied from the
-landing-loop repo, unchanged), the decide call of 2026-07-27 in sources/, one draft per call in drafts/,
-and upstream/bet-portfolio-review.json, the landing-loop record filtered to the keys decision-record reads
-(schema, bet, brief, portfolio), copied unchanged.
+landing-loop repo, unchanged), the decide call of 2026-07-27 and the spec review call of 2026-08-10 in
+sources/, one draft per call in drafts/, and upstream/bet-portfolio-review.json, the landing-loop record
+filtered to the keys decision-record reads (schema, bet, brief, portfolio), copied unchanged.
 
-Each draft goes through record.py append, so every record passes the same checks a real one does: the
-decider is named, and their words are in the source on the date given. The record's decisions key stays as
-of 2026-07-27, so it comes before 02 Spec in record order; there D-0004 (rollback trigger) and D-0005 (model
-tier) are open. The later read records both calls from the spec review call of 2026-08-10 with record.py
-decide, then reads the log as of 2026-11-26. It writes no key. The same inputs give the same bytes.
+Each draft goes through record.py append on 2026-07-27, and each call made on 2026-08-10 through
+record.py decide, so every record passes the same checks a real one does: the decider is named, and their
+words are in the source on the date given. The log as it stood on 2026-07-27 (D-0004, the rollback
+trigger, and D-0005, the model tier, still open) is kept and read as the Decide-step view, with no record
+write. The record key is the full log read as of 2026-11-26. decision-record reads only brief and
+portfolio, so a later as_of keeps record order. The same inputs give the same bytes.
 
 Usage, from the repo root (Python 3.11 or later):
   python3 examples/acme/sample.py [--into DIR]
@@ -39,13 +40,13 @@ import open_decisions  # noqa: E402
 import record  # noqa: E402
 
 BET = "quote-drafting"
-AS_OF = "2026-07-27"
-LATER = "2026-11-26"
+DECIDE_STEP = "2026-07-27"
+AS_OF = "2026-11-26"
 SOURCE = HERE / "sources" / "decide-call-2026-07-27.txt"
 SPEC_REVIEW = HERE / "sources" / "spec-review-call-2026-08-10.txt"
 OUTPUTS = (
     "decisions.md", "decision-record.html", "decision-record.md", "leader-report-decisions.md", f"landing/{BET}.json",
-    "later/decisions.md", "later/open-decisions.md",
+    "decide-step/decisions.md", "decide-step/open-decisions.md",
 )  # fmt: skip
 
 # The two calls made at the spec review of 2026-08-10, in the words of record.py decide.
@@ -83,9 +84,24 @@ def main(argv: list[str] | None = None) -> None:
         quiet = io.StringIO()
         for draft in sorted((HERE / "drafts").glob("*.json")):
             with contextlib.redirect_stdout(quiet):
-                code = record.main(["append", "--draft", str(draft), "--source", str(SOURCE), "--as-of", AS_OF, "--log", str(log)])
+                code = record.main(["append", "--draft", str(draft), "--source", str(SOURCE), "--as-of", DECIDE_STEP, "--log", str(log)])
             if code:
                 raise SystemExit(f"sample: {draft.name} was refused:\n{quiet.getvalue()}")
+        step = work / "decide-step"
+        step.mkdir()
+        shutil.copy(log, step / "decisions.md")
+        read = io.StringIO()
+        with contextlib.redirect_stdout(read):
+            code = open_decisions.main(["--log", str(step / "decisions.md"), "--as-of", DECIDE_STEP])
+        if code:
+            raise SystemExit(f"sample: open_decisions.py refused the Decide-step log:\n{read.getvalue()}")
+        (step / "open-decisions.md").write_text(read.getvalue(), encoding="utf-8")
+        for call in SPEC_REVIEW_CALLS:
+            args = ["decide", *call, "--source", str(SPEC_REVIEW), "--source-name", "Acme spec review call, 2026-08-10 (illustrative)"]
+            with contextlib.redirect_stdout(quiet):
+                code = record.main([*args, "--as-of", AS_OF, "--log", str(log)])
+            if code:
+                raise SystemExit(f"sample: record.py decide {call[0]} was refused:\n{quiet.getvalue()}")
         with contextlib.redirect_stdout(quiet):
             code = open_decisions.main(
                 [
@@ -99,21 +115,6 @@ def main(argv: list[str] | None = None) -> None:
             )  # fmt: skip
         if code:
             raise SystemExit(f"sample: open_decisions.py refused:\n{quiet.getvalue()}")
-        later = work / "later"
-        later.mkdir()
-        shutil.copy(log, later / "decisions.md")
-        for call in SPEC_REVIEW_CALLS:
-            args = ["decide", *call, "--source", str(SPEC_REVIEW), "--source-name", "Acme spec review call, 2026-08-10 (illustrative)"]
-            with contextlib.redirect_stdout(quiet):
-                code = record.main([*args, "--as-of", LATER, "--log", str(later / "decisions.md")])
-            if code:
-                raise SystemExit(f"sample: record.py decide {call[0]} was refused:\n{quiet.getvalue()}")
-        read = io.StringIO()
-        with contextlib.redirect_stdout(read):
-            code = open_decisions.main(["--log", str(later / "decisions.md"), "--as-of", LATER])
-        if code:
-            raise SystemExit(f"sample: open_decisions.py refused the later log:\n{read.getvalue()}")
-        (later / "open-decisions.md").write_text(read.getvalue(), encoding="utf-8")
         for name in OUTPUTS:
             (into / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(work / name, into / name)

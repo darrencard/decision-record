@@ -81,6 +81,10 @@ def lede(key: dict[str, Any]) -> str:
         r = late[0]
         who = r["owner"] or "nobody named"
         out += f" {len(late)} waiting longer than usual: {r['id']} has waited {plural(r['days_waiting'], 'day')} on {who}, against a usual {f['usual_days_to_decide']['value']:g}."
+    slow = slow_calls(key)
+    if slow:
+        calls = ", ".join(f"{i} ({plural(n, 'day')})" for i, n in slow)
+        out += f" {len(slow)} took longer than the usual {f['usual_days_to_decide']['value']:g} days to decide: {calls}."
     due = [r for r in key["rows"] if r["deadline"] and r["deadline"] < key["as_of"]]
     if due:
         r = due[0]
@@ -104,14 +108,35 @@ def open_block(r: dict[str, Any], fig: dict[str, Any] | None) -> str:
     return f'<p class="ask">{e(r["id"])}. {e(r["ask"])}</p><p class="rec">{e(r["recommendation"])}</p><div class="dc">{rows}</div>'
 
 
+def took(key: dict[str, Any], d: dict[str, Any]) -> str:
+    """', 28 days after it was opened, longer than the usual 14': a decision's history, from the figures."""
+    f = key["figures"]
+    fig = f.get(f"days_to_decide@{d['id']}")
+    if not fig:
+        return ""
+    out = f", {plural(fig['value'], 'day')} after it was opened"
+    usual = f.get("usual_days_to_decide")
+    if usual and fig["value"] > usual["value"]:
+        out += f", longer than the usual {usual['value']:g}"
+    return out
+
+
+def slow_calls(key: dict[str, Any]) -> list[tuple[str, int]]:
+    """Decided records that took longer than the usual time to decide, slowest first."""
+    f = key["figures"]
+    usual = f.get("usual_days_to_decide")
+    if not usual:
+        return []
+    slow = [(d["id"], f[f"days_to_decide@{d['id']}"]["value"]) for d in key["decided"] if f"days_to_decide@{d['id']}" in f]
+    return sorted([x for x in slow if x[1] > usual["value"]], key=lambda x: (-x[1], x[0]))
+
+
 def decided_rows(key: dict[str, Any]) -> str:
     out = []
     for d in key["decided"]:
-        fig = key["figures"].get(f"days_to_decide@{d['id']}")
-        took = f", {plural(fig['value'], 'day')} after it was opened" if fig else ""
         body = (
             f'<b style="color:var(--t1);font-weight:600">{e(d["title"])}.</b> Chosen: {e(d["chosen"] or "as written")}. '
-            f'<span class="who">{e(d["decided_by"])}</span> decided on {e(d["date"])}{e(took)}. '
+            f'<span class="who">{e(d["decided_by"])}</span> decided on {e(d["date"])}{e(took(key, d))}. '
             f"Owner {e(d['owner'] or 'not named')}, review by {e(d['review_by'] or 'not set')}, reversible {e(d['reversible'] or 'unknown')}.<br>"
             f'<span class="ev">Success signal: {e(d["success_signal"] or "none recorded")}<br>'
             + "".join(f"Assumes: {e(x)}<br>" for x in d.get("assumptions") or [])
@@ -189,7 +214,7 @@ def markdown(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     out += ["| " + " | ".join("" if r[c] is None else str(r[c]).replace("|", "\\|") for c in cols) + " |" for r in key["rows"]]
     out += ["", "## Decided", ""]
     for d in key["decided"]:
-        out.append(f"- {d['id']} {d['title']}. Chosen: {d['chosen']}. {d['decided_by']} decided on {d['date']}. Owner {d['owner']}, review by {d['review_by']}.")
+        out.append(f"- {d['id']} {d['title']}. Chosen: {d['chosen']}. {d['decided_by']} decided on {d['date']}{took(key, d)}. Owner {d['owner']}, review by {d['review_by']}.")
         out.append(f"  Reversible: {d['reversible'] or 'unknown'}. Success signal: {d['success_signal'] or 'none recorded'}")
         out += [f"  Assumes: {x}" for x in d.get("assumptions") or []]
         out.append(f'  In their words: "{d["evidence"]}"')

@@ -64,38 +64,26 @@
 
 ## D-0004: Set the rollback trigger for quote drafting
 
-- Status: decided
-- Decision: Quote drafting rolls back when wrong-price quotes pass 2%. This closes the spec hold of 2026-08-03 on the rollback trigger.
+- Status: open
+- Decision: Which number rolls quote drafting back: wrong-price quotes over 2%, or rejected drafts over 30%?
 - Options considered:
   - Roll back when wrong-price quotes pass 2%
   - Roll back when rejected drafts pass 30%
-- Chosen: Roll back when wrong-price quotes pass 2%
-- Decided by: Head of Product, Quoting squad
-- Date: 2026-08-10
-- Owner: Tech lead, Quoting squad
-- Review by: 2026-11-15
-- Reversible: yes
-- Success signal: Wrong-price quotes stay below 2% to 2026-11-15 (illustrative).
 - Opened: 2026-07-13
+- Waiting on: Lead, Quoting squad
+- Decide by: 2026-08-03
 - Recommendation: Product manager, Quoting squad, recommends the wrong-price trigger at 2%
-- Source: Acme spec review call, 2026-08-10 (illustrative)
-- Evidence: My call: we roll back quote drafting when wrong-price quotes pass 2%.
+- Source: Acme decide call, 2026-07-27 (illustrative)
 
 ## D-0005: Choose the model tier for quote drafts
 
-- Status: decided
-- Decision: vendor-a/m drafts quotes in v1. Long drafts go to vendor-a/xl.
+- Status: open
+- Decision: Which model drafts quotes in v1: vendor-a/xl, or vendor-a/m?
 - Options considered:
   - vendor-a/xl
   - vendor-a/m
-- Chosen: vendor-a/m
-- Decided by: Tech lead, Quoting squad
-- Date: 2026-08-10
-- Owner: Tech lead, Quoting squad
-- Review by: 2026-11-15
-- Reversible: yes
-- Success signal: Tokens per task within the brief's 9,000 budget to 2026-11-15 (illustrative).
 - Opened: 2026-07-20
+- Waiting on: Tech lead, Quoting squad
+- Decide by: 2026-08-03
 - Recommendation: Lead, Quoting squad, recommends vendor-a/m, to stay inside the 9,000 token budget
-- Source: Acme spec review call, 2026-08-10 (illustrative)
-- Evidence: vendor-a/m drafts quotes in v1. Long drafts go to vendor-a/xl. That is my call.
+- Source: Acme decide call, 2026-07-27 (illustrative)

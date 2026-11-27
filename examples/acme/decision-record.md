@@ -1,10 +1,10 @@
 # Decisions on quote drafting
 
-Read 2026-07-27 · decision-record 0.3.0 · Illustrative
+Read 2026-11-26 · decision-record 0.3.0 · Illustrative
 
-3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.
+5 decided, 0 open. 2 took longer than the usual 14 days to decide: D-0004 (28 days), D-0005 (21 days).
 
-Next step: D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03.
+Next step: No open decisions on this bet.
 
 Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts.
 
@@ -12,23 +12,27 @@ Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief
 
 | ask | options | recommendation | deadline | owner | days_waiting | id | source |
 |---|---|---|---|---|---|---|---|
-| Set the rollback trigger for quote drafting | Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30% | Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, longer than the usual 7 days to decide. | 2026-08-03 | Lead, Quoting squad | 14 | D-0004 | Acme decide call, 2026-07-27 (illustrative) |
-| Choose the model tier for quote drafts | vendor-a/xl or vendor-a/m | Lead, Quoting squad, recommends vendor-a/m, to stay inside the 9,000 token budget. Waiting on Tech lead, Quoting squad, 7 days open. | 2026-08-03 | Tech lead, Quoting squad | 7 | D-0005 | Acme decide call, 2026-07-27 (illustrative) |
 
 ## Decided
 
-- D-0001 Build quote drafting now, against its landing brief. Chosen: Build quote drafting now. Head of Product, Quoting squad decided on 2026-07-27. Owner Lead, Quoting squad, review by 2026-11-15.
+- D-0001 Build quote drafting now, against its landing brief. Chosen: Build quote drafting now. Head of Product, Quoting squad decided on 2026-07-27, 7 days after it was opened. Owner Lead, Quoting squad, review by 2026-11-15.
   Reversible: yes. Success signal: Quote draft acceptance rate at 40% or higher by 2026-11-15, as the landing brief sets.
   Assumes: Tradespeople accept a draft they can edit
   Assumes: 9,000 tokens per task is enough for a full quote
   In their words: "My call: we build quote drafting now, against the brief as written, and we review it on 15 November."
-- D-0002 Quote drafts wait for the tradesperson's approval before they send. Chosen: Approve before send. Head of Product, Quoting squad decided on 2026-07-27. Owner Lead, Quoting squad, review by 2026-11-15.
+- D-0002 Quote drafts wait for the tradesperson's approval before they send. Chosen: Approve before send. Head of Product, Quoting squad decided on 2026-07-27, 14 days after it was opened. Owner Lead, Quoting squad, review by 2026-11-15.
   Reversible: yes. Success signal: Wrong-line-item complaints below 5 a month by 2026-11-15 (illustrative).
   Assumes: Most wrong line items are caught when the tradesperson reads the draft
   In their words: "Decided: every drafted quote waits for the tradesperson to approve it before it sends."
-- D-0003 Prices come from the price book, never the model. Chosen: Prices from the price book. Tech lead, Quoting squad decided on 2026-07-27. Owner Lead, Quoting squad, review by 2026-11-15.
+- D-0003 Prices come from the price book, never the model. Chosen: Prices from the price book. Tech lead, Quoting squad decided on 2026-07-27, 5 days after it was opened. Owner Lead, Quoting squad, review by 2026-11-15.
   Reversible: yes. Success signal: No sent quote carries a price that differs from the price book, checked weekly to 2026-11-15 (illustrative).
   In their words: "Prices come from the price book in fixed code. That is my call for v1."
+- D-0004 Set the rollback trigger for quote drafting. Chosen: Roll back when wrong-price quotes pass 2%. Head of Product, Quoting squad decided on 2026-08-10, 28 days after it was opened, longer than the usual 14. Owner Tech lead, Quoting squad, review by 2026-11-15.
+  Reversible: yes. Success signal: Wrong-price quotes stay below 2% to 2026-11-15 (illustrative).
+  In their words: "My call: we roll back quote drafting when wrong-price quotes pass 2%."
+- D-0005 Choose the model tier for quote drafts. Chosen: vendor-a/m. Tech lead, Quoting squad decided on 2026-08-10, 21 days after it was opened, longer than the usual 14. Owner Tech lead, Quoting squad, review by 2026-11-15.
+  Reversible: yes. Success signal: Tokens per task within the brief's 9,000 budget to 2026-11-15 (illustrative).
+  In their words: "vendor-a/m drafts quotes in v1. Long drafts go to vendor-a/xl. That is my call."
 
 ## What it read
 
@@ -39,15 +43,14 @@ Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief
 
 | Figure | Value | Window | Source |
 |---|---|---|---|
-| open | 2 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
-| decided | 3 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
-| waiting_long | 1 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
-| past_due | 0 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); open with a decide-by date before as_of |
-| waiting_on_nobody | 0 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
-| oldest_open | 14 days | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); as_of minus the opened date |
-| usual_days_to_decide | 7 days | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); median days from opened to decided |
-| days_waiting@D-0004 | 14 days | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); as_of minus the opened date |
-| days_waiting@D-0005 | 7 days | 2026-07-20 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); as_of minus the opened date |
-| days_to_decide@D-0001 | 7 days | 2026-07-20 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); decided date minus the opened date |
-| days_to_decide@D-0002 | 14 days | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); decided date minus the opened date |
-| days_to_decide@D-0003 | 5 days | 2026-07-22 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); decided date minus the opened date |
+| open | 0 decisions | 2026-07-13 to 2026-11-26 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d) |
+| decided | 5 decisions | 2026-07-13 to 2026-11-26 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d) |
+| waiting_long | 0 decisions | 2026-07-13 to 2026-11-26 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d) |
+| past_due | 0 decisions | 2026-07-13 to 2026-11-26 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); open with a decide-by date before as_of |
+| waiting_on_nobody | 0 decisions | 2026-07-13 to 2026-11-26 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d) |
+| usual_days_to_decide | 14 days | 2026-07-13 to 2026-11-26 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided |
+| days_to_decide@D-0001 | 7 days | 2026-07-20 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0002 | 14 days | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0003 | 5 days | 2026-07-22 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0004 | 28 days | 2026-07-13 to 2026-08-10 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |
+| days_to_decide@D-0005 | 21 days | 2026-07-20 to 2026-08-10 | decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date |

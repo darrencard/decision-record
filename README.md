@@ -24,26 +24,25 @@ Acme is invented: invoicing software for trades businesses. Every person, figure
 python3 examples/acme/sample.py
 ```
 
-It reads Acme's decide call of 2026-07-27 ([sources/](examples/acme/sources)), checks five draft records against it, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json). It starts from the landing-loop record filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
+It reads Acme's decide call of 2026-07-27 and spec review call of 2026-08-10 ([sources/](examples/acme/sources)), checks five draft records and two later calls against them, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json), read as of 2026-11-26. It starts from the landing-loop record filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
 
 ```text
-3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.
-Next step: D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03.
+5 decided, 0 open. 2 took longer than the usual 14 days to decide: D-0004 (28 days), D-0005 (21 days).
+D-0004 Set the rollback trigger for quote drafting. Head of Product, Quoting squad decided on 2026-08-10, 28 days after it was opened, longer than the usual 14.
 ```
 
-That is the Decide step, read on 2026-07-27, before 02 Spec: the rollback trigger (D-0004) and the model tier (D-0005) are still open. Both were decided at the spec review call of 2026-08-10 ([sources/](examples/acme/sources)): the Head of Product set the trigger at 2% wrong-price quotes, which closed the spec hold of 2026-08-03, and the tech lead chose vendor-a/m. The sample records both with `record.py decide` into [later/decisions.md](examples/acme/later/decisions.md). The same log read later:
+The Decide step itself, as the log stood on 2026-07-27, before 02 Spec: the rollback trigger (D-0004) and the model tier (D-0005) were still open. The sample keeps that log in [decide-step/](examples/acme/decide-step) and reads it with no record write:
 
 ```bash
-python3 skills/decision-record/scripts/open_decisions.py --log examples/acme/later/decisions.md --as-of 2026-11-26
+python3 skills/decision-record/scripts/open_decisions.py --log examples/acme/decide-step/decisions.md --as-of 2026-07-27
 ```
 
 ```text
-No open decisions in the log.
-Usual time to decide: 14 days (median of 5 decided records).
-Review due: D-0001 Build quote drafting now, against its landing brief, 11 days past 2026-11-15 (owner: Lead, Quoting squad).
+2 open · oldest 14 days · 1 waiting longer than usual
+| D-0004 | Set the rollback trigger for quote drafting | 14 | Lead, Quoting squad | longer than usual |
 ```
 
-The later read writes no record key, so the `decisions` key stays as of 2026-07-27 and comes before `spec` in record order.
+Both calls were made at the spec review call of 2026-08-10: the Head of Product set the trigger at 2% wrong-price quotes, which closed the spec hold of 2026-08-03, and the tech lead chose vendor-a/m. The sample records them with `record.py decide`. decision-record reads only the brief and the `portfolio` key, so a key read as of 2026-11-26 keeps record order.
 
 ## Install
 
@@ -66,29 +65,28 @@ Standalone: clone this repository and copy `skills/decision-record` into `~/.cla
 Your own bet, once the records are in the log:
 
 ```bash
-python3 skills/decision-record/scripts/open_decisions.py --log decisions.md --as-of 2026-07-27 \
+python3 skills/decision-record/scripts/open_decisions.py --log decisions.md --as-of 2026-11-26 \
   --loop . --bet quote-drafting --html decisions.html --md decisions-read.md
 ```
 
 ## The record key
 
-Open decisions go in `rows`, in the Leader Report's decision format (`ask`, `options`, `recommendation`, `deadline`, plus `owner`, `days_waiting`, `id`, `source`), so its decision slide reads them unchanged. Every figure carries value, unit, source, window and as_of. Shortened from the Acme record:
+Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report's decision format (`ask`, `options`, `recommendation`, `deadline`, plus `owner`, `days_waiting`, `id`, `source`), so its decision slide reads them unchanged. Every figure carries value, unit, source, window and as_of. Shortened from the Acme record:
 
 ```json
 "decisions": {
   "tool": "decision-record 0.3.0",
-  "as_of": "2026-07-27",
+  "as_of": "2026-11-26",
+  "reads": {"brief": true, "portfolio": true},
   "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
-  "rows": [{"ask": "Set the rollback trigger for quote drafting", "options": "Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30%",
-            "recommendation": "Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, longer than the usual 7 days to decide.",
-            "deadline": "2026-08-03", "owner": "Lead, Quoting squad", "days_waiting": 14, "id": "D-0004", "source": "Acme decide call, 2026-07-27 (illustrative)"}],
-  "decided": [{"id": "D-0001", "title": "Build quote drafting now, against its landing brief", "decided_by": "Head of Product, Quoting squad", "date": "2026-07-27"}],
+  "rows": [],
+  "decided": [{"id": "D-0004", "title": "Set the rollback trigger for quote drafting", "chosen": "Roll back when wrong-price quotes pass 2%",
+               "decided_by": "Head of Product, Quoting squad", "date": "2026-08-10", "owner": "Tech lead, Quoting squad",
+               "source": "Acme spec review call, 2026-08-10 (illustrative)"}],
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
-  "figures": {"waiting_long": {"value": 1, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
-                              "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"},
-              "past_due": {"value": 0, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); open with a decide-by date before as_of",
-                           "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"}},
-  "next_step": "D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03."
+  "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
+              "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
+  "next_step": "No open decisions on this bet."
 }
 ```
 

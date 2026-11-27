@@ -45,12 +45,17 @@ import open_decisions  # noqa: E402
 import render_html  # noqa: E402
 
 BET = "quote-drafting"
-AS_OF = "2026-07-27"
+AS_OF = "2026-11-26"  # the record key: the full log, read late in the loop
+DECIDE_STEP = "2026-07-27"  # the Decide-step view, read with no record write
 STATUS_WORDS = re.compile(r"\b(landed|watch|stalled)\b", re.I)
 SAMPLE_OUTPUTS = (
     "decisions.md", "decision-record.html", "decision-record.md", "leader-report-decisions.md", f"landing/{BET}.json",
-    "later/decisions.md", "later/open-decisions.md",
+    "decide-step/decisions.md", "decide-step/open-decisions.md",
 )  # fmt: skip
+
+
+def landing_brief_for_acme():
+    return loop.read_brief(ACME / "briefs" / f"{BET}.md")
 
 
 def figures_in(obj, prefix=""):
@@ -118,40 +123,53 @@ class Sample(unittest.TestCase):
 
 
 class Story(unittest.TestCase):
-    """The Decide-step snapshot and the later read tell one story with the rest of the loop."""
+    """The record key and the Decide-step view tell one story with the rest of the loop."""
 
-    def test_the_decide_snapshot_comes_before_spec_and_shows_both_calls_open(self):
+    def test_the_key_reads_the_full_log_and_only_brief_and_portfolio(self):
         rec = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))
-        self.assertEqual(rec["decisions"]["as_of"], AS_OF)
-        self.assertLess(rec["decisions"]["as_of"], "2026-08-03")  # 02 Spec reads on 2026-08-03
-        self.assertEqual([r["id"] for r in rec["decisions"]["rows"]], ["D-0004", "D-0005"])
+        key = rec["decisions"]
+        self.assertEqual(key["as_of"], AS_OF)
+        self.assertEqual(key["reads"], {"brief": True, "portfolio": True})
+        self.assertEqual(list(rec), ["schema", "bet", "brief", "portfolio", "decisions"])
+        by = {d["id"]: d for d in key["decided"]}
+        trigger, tier = by["D-0004"], by["D-0005"]
+        self.assertEqual((trigger["decided_by"], trigger["owner"]), ("Head of Product, Quoting squad", "Tech lead, Quoting squad"))
+        self.assertEqual(trigger["chosen"], "Roll back when wrong-price quotes pass 2%")
+        self.assertTrue("2026-08-03" < trigger["date"] < "2026-09-05")  # after the spec hold, before the release read
+        self.assertLess(tier["date"], "2026-11-15")  # before the cost read
+        self.assertEqual(tier["chosen"], "vendor-a/m")
+        for d in (trigger, tier):
+            self.assertEqual(d["source"], "Acme spec review call, 2026-08-10 (illustrative)")
 
-    def test_the_later_log_decides_the_trigger_before_release_and_the_tier_before_the_cost_read(self):
-        recs = {r.id: r for r in declog.parse_log((ACME / "later" / "decisions.md").read_text(encoding="utf-8"))}
-        self.assertEqual({r.status for r in recs.values()}, {"decided"})
-        trigger, tier = recs["D-0004"], recs["D-0005"]
-        self.assertEqual((trigger.decided_by, trigger.owner), ("Head of Product, Quoting squad", "Tech lead, Quoting squad"))
-        self.assertEqual(trigger.chosen, "Roll back when wrong-price quotes pass 2%")
-        self.assertTrue("2026-08-03" < trigger.date < "2026-09-05")  # after the spec hold, before the release read
-        self.assertLess(tier.date, "2026-11-15")  # before the cost read
-        self.assertEqual(tier.chosen, "vendor-a/m")
-        for r in (trigger, tier):
-            self.assertEqual(r.source, "Acme spec review call, 2026-08-10 (illustrative)")
-        self.assertEqual(declog.validate_log(list(recs.values()), date(2026, 11, 26)), [])
-        self.assertIn("No open decisions in the log.", (ACME / "later" / "open-decisions.md").read_text(encoding="utf-8"))
+    def test_the_page_keeps_the_decide_step_history(self):
+        md = (ACME / "decision-record.md").read_text(encoding="utf-8")
+        self.assertIn("5 decided, 0 open. 2 took longer than the usual 14 days to decide: D-0004 (28 days), D-0005 (21 days).", md)
+        self.assertIn("decided on 2026-08-10, 28 days after it was opened, longer than the usual 14.", md)
+        self.assertNotIn("past due", md)
 
-    def test_the_readme_shows_the_later_read(self):
+    def test_the_decide_step_view_shows_both_calls_open(self):
+        step = declog.parse_log((ACME / "decide-step" / "decisions.md").read_text(encoding="utf-8"))
+        self.assertEqual([r.id for r in step if r.status == "open"], ["D-0004", "D-0005"])
+        self.assertEqual(declog.validate_log(step, date.fromisoformat(DECIDE_STEP)), [])
+        view = (ACME / "decide-step" / "open-decisions.md").read_text(encoding="utf-8")
+        self.assertIn("2 open · oldest 14 days · 1 waiting longer than usual", view)
+        self.assertIn("| D-0004 | Set the rollback trigger for quote drafting | 14 | Lead, Quoting squad | longer than usual |", view)
+        self.assertNotIn("past due", view)  # D-0004's deadline, 2026-08-03, is still ahead on 2026-07-27
+
+    def test_the_readme_shows_the_decide_step_view(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("--log examples/acme/later/decisions.md --as-of 2026-11-26", readme)
+        self.assertIn("--log examples/acme/decide-step/decisions.md --as-of 2026-07-27", readme)
 
     def test_past_due_means_a_passed_deadline_not_a_long_wait(self):
-        md = (ACME / "decision-record.md").read_text(encoding="utf-8")
-        self.assertIn("1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.", md)
-        self.assertNotIn("past due", md)  # D-0004's deadline, 2026-08-03, is still ahead on 2026-07-27
-        key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
-        late = json.loads(json.dumps(key))
-        late["as_of"] = "2026-08-04"
-        self.assertIn("2 past due: D-0004 was to be decided by 2026-08-03.", render_html.lede(late))
+        records = declog.parse_log((ACME / "decide-step" / "decisions.md").read_text(encoding="utf-8"))
+        key = loop.build(records, date(2026, 8, 4), {"path": "decisions.md", "sha256": "0" * 64}, landing_brief_for_acme(), None)
+        self.assertEqual(key["figures"]["past_due"]["value"], 2)
+        self.assertIn("2 past due: D-0004 was to be decided by 2026-08-03.", render_html.lede(key))
+        early = loop.build(records, date.fromisoformat(DECIDE_STEP), {"path": "decisions.md", "sha256": "0" * 64}, landing_brief_for_acme(), None)
+        self.assertEqual(
+            render_html.lede(early),
+            "3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7. 1 took longer than the usual 7 days to decide: D-0002 (14 days).",
+        )
 
 
 class EntryScripts(unittest.TestCase):
@@ -173,7 +191,7 @@ class EntryScripts(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             log = Path(tmp) / "decisions.md"
-            shutil.copy(ACME / "decisions.md", log)
+            shutil.copy(ACME / "decide-step" / "decisions.md", log)
             args = ["decide", "D-0005", "--decided-by", "Tech lead, Quoting squad", "--date", "2026-08-10", "--evidence", "x", "--source-name", "Spec review"]
             with contextlib.redirect_stdout(io.StringIO()):
                 code = record.main([*args, "--as-of", "2026-11-26", "--log", str(log)])
@@ -244,7 +262,8 @@ class LoopRecord(Work):
             self.assertTrue(declog.is_scoped_role(d["decided_by"]), d)
         self.assertEqual(key["brief"]["tested_by"], ["D-0001"])
         self.assertEqual(key["decided"][0]["decided_by"], key["brief"]["decides"])  # the brief's own scoped role
-        self.assertEqual(key["next_step_by"], "Lead, Quoting squad")
+        self.assertIsNone(key["next_step_by"])  # nothing is open on 2026-11-26
+        self.assertEqual(key["rows"], [])
 
 
 class Figures(unittest.TestCase):
@@ -264,9 +283,9 @@ class Figures(unittest.TestCase):
 
     def test_acme_figures_match_the_log(self):
         f = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]["figures"]
-        got = {k: f[k]["value"] for k in ("open", "decided", "waiting_long", "past_due", "oldest_open", "usual_days_to_decide")}
-        # D-0004 has waited 14 days against a usual 7, but its decide-by date (2026-08-03) is still ahead: not past due.
-        self.assertEqual(got, {"open": 2, "decided": 3, "waiting_long": 1, "past_due": 0, "oldest_open": 14, "usual_days_to_decide": 7.0})
+        got = {k: f[k]["value"] for k in ("open", "decided", "waiting_long", "past_due", "usual_days_to_decide", "days_to_decide@D-0004", "days_to_decide@D-0005")}
+        self.assertEqual(got, {"open": 0, "decided": 5, "waiting_long": 0, "past_due": 0, "usual_days_to_decide": 14.0, "days_to_decide@D-0004": 28, "days_to_decide@D-0005": 21})
+        self.assertNotIn("oldest_open", f)
 
 
 class StatusWords(unittest.TestCase):
@@ -296,8 +315,11 @@ class LeaderReport(unittest.TestCase):
         records = declog.parse_log((ACME / "decisions.md").read_text(encoding="utf-8"))
         rows, problems = declog.leader_report_rows(records, date.fromisoformat(AS_OF))
         self.assertEqual((key["rows"], problems), (rows, []))
-        for r in key["rows"]:
-            self.assertEqual(list(r), key["columns"])
+        step = declog.parse_log((ACME / "decide-step" / "decisions.md").read_text(encoding="utf-8"))
+        step_rows, problems = declog.leader_report_rows(step, date.fromisoformat(DECIDE_STEP))
+        self.assertEqual(([r["id"] for r in step_rows], problems), (["D-0004", "D-0005"], []))
+        for r in step_rows:
+            self.assertEqual(list(r), list(declog.LEADER_REPORT_COLUMNS + declog.LEADER_REPORT_EXTRA))
             self.assertNotIn(" or ", r["options"].replace(" or ", "|", 1))
 
     def test_rows_match_the_markdown_export(self):
@@ -364,14 +386,14 @@ class Page(unittest.TestCase):
         self.assertNotIn("var(--landed)", self.body)
         self.assertNotIn("var(--stalled)", self.body)
         brass = re.findall(r'<span class="who">([^<]*)</span>', self.body)
-        self.assertEqual(set(brass), {"Head of Product, Quoting squad", "Tech lead, Quoting squad", "Lead, Quoting squad"})
-        # The brand mark's brass bar, and the next step's named person. Nothing else.
-        self.assertEqual(self.body.count("var(--brass)"), 2)
+        self.assertEqual(set(brass), {"Head of Product, Quoting squad", "Tech lead, Quoting squad"})
+        # The brand mark's brass bar only: nothing is open, so no next step waits on a person.
+        self.assertEqual(self.body.count("var(--brass)"), 1)
 
     def test_source_text_is_escaped(self):
         key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
         key = json.loads(json.dumps(key))
-        key["rows"][0]["ask"] = "<script>alert(1)</script>"
+        key["decided"][0]["title"] = "<script>alert(1)</script>"
         out = render_html.page(key, {}, "T")
         self.assertNotIn("<script>alert", out)
         self.assertIn("&lt;script&gt;", out)
