@@ -61,7 +61,7 @@
     "as_of": "2026-07-27",
     "log": {
       "path": "decisions.md",
-      "sha256": "42c46365e3dc4467516b31ff0d51424ca14f309399d848f2269ca57440bf9be8"
+      "sha256": "a01557cce6febb250bc9f8533481eb5fb5fd6e80979df5ab8cb33bf48a8f53e9"
     },
     "reads": {
       "brief": true,
@@ -81,9 +81,9 @@
       {
         "ask": "Set the rollback trigger for quote drafting",
         "options": "Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30%",
-        "recommendation": "The Quoting squad product manager recommends the wrong-price trigger at 2%. Waiting on Quoting squad lead, 14 days open, past the usual 7 days to decide.",
+        "recommendation": "Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, past the usual 7 days to decide.",
         "deadline": "2026-08-03",
-        "owner": "Quoting squad lead",
+        "owner": "Lead, Quoting squad",
         "days_waiting": 14,
         "id": "D-0004",
         "source": "Acme decide call, 2026-07-27 (illustrative)"
@@ -91,9 +91,9 @@
       {
         "ask": "Choose the model tier for quote drafts",
         "options": "vendor-a/xl or vendor-a/m",
-        "recommendation": "The Quoting squad lead recommends vendor-a/m, to stay inside the 9,000 token budget. Waiting on Quoting squad tech lead, 7 days open.",
+        "recommendation": "Lead, Quoting squad, recommends vendor-a/m, to stay inside the 9,000 token budget. Waiting on Tech lead, Quoting squad, 7 days open.",
         "deadline": "2026-08-03",
-        "owner": "Quoting squad tech lead",
+        "owner": "Tech lead, Quoting squad",
         "days_waiting": 7,
         "id": "D-0005",
         "source": "Acme decide call, 2026-07-27 (illustrative)"
@@ -106,7 +106,7 @@
         "chosen": "Build quote drafting now",
         "decided_by": "Head of Product, Quoting squad",
         "date": "2026-07-27",
-        "owner": "Quoting squad lead",
+        "owner": "Lead, Quoting squad",
         "review_by": "2026-11-15",
         "reversible": "yes",
         "success_signal": "Quote draft acceptance rate at 40% or higher by 2026-11-15, as the landing brief sets.",
@@ -123,7 +123,7 @@
         "chosen": "Approve before send",
         "decided_by": "Head of Product, Quoting squad",
         "date": "2026-07-27",
-        "owner": "Quoting squad lead",
+        "owner": "Lead, Quoting squad",
         "review_by": "2026-11-15",
         "reversible": "yes",
         "success_signal": "Wrong-line-item complaints below 5 a month by 2026-11-15 (illustrative).",
@@ -137,9 +137,9 @@
         "id": "D-0003",
         "title": "Prices come from the price book, never the model",
         "chosen": "Prices from the price book",
-        "decided_by": "Quoting squad tech lead",
+        "decided_by": "Tech lead, Quoting squad",
         "date": "2026-07-27",
-        "owner": "Quoting squad lead",
+        "owner": "Lead, Quoting squad",
         "review_by": "2026-11-15",
         "reversible": "yes",
         "success_signal": "No sent quote carries a price that differs from the price book, checked weekly to 2026-11-15 (illustrative).",
@@ -162,7 +162,7 @@
       "open": {
         "value": 2,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc)",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -172,7 +172,7 @@
       "decided": {
         "value": 3,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc)",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -182,7 +182,7 @@
       "past_due": {
         "value": 1,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc)",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -192,7 +192,7 @@
       "waiting_on_nobody": {
         "value": 0,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc)",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -202,7 +202,7 @@
       "oldest_open": {
         "value": 14,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc); as_of minus the opened date",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); as_of minus the opened date",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -212,7 +212,7 @@
       "usual_days_to_decide": {
         "value": 7.0,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc); median days from opened to decided",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); median days from opened to decided",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -222,7 +222,7 @@
       "days_waiting@D-0004": {
         "value": 14,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc); as_of minus the opened date",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); as_of minus the opened date",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -232,7 +232,7 @@
       "days_waiting@D-0005": {
         "value": 7,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc); as_of minus the opened date",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); as_of minus the opened date",
         "window": {
           "from": "2026-07-20",
           "to": "2026-07-27"
@@ -242,7 +242,7 @@
       "days_to_decide@D-0001": {
         "value": 7,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc); decided date minus the opened date",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); decided date minus the opened date",
         "window": {
           "from": "2026-07-20",
           "to": "2026-07-27"
@@ -252,7 +252,7 @@
       "days_to_decide@D-0002": {
         "value": 14,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc); decided date minus the opened date",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); decided date minus the opened date",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -262,7 +262,7 @@
       "days_to_decide@D-0003": {
         "value": 5,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 42c46365e3dc); decided date minus the opened date",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); decided date minus the opened date",
         "window": {
           "from": "2026-07-22",
           "to": "2026-07-27"
@@ -271,8 +271,8 @@
       }
     },
     "gaps": [],
-    "next_step": "D-0004 waits on Quoting squad lead: set the rollback trigger for quote drafting by 2026-08-03.",
-    "next_step_by": "Quoting squad lead",
+    "next_step": "D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03.",
+    "next_step_by": "Lead, Quoting squad",
     "next_in_loop": "Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts.",
     "illustrative": true
   }

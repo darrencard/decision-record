@@ -12,7 +12,7 @@
 - Chosen: Build quote drafting now
 - Decided by: Head of Product, Quoting squad
 - Date: 2026-07-27
-- Owner: Quoting squad lead
+- Owner: Lead, Quoting squad
 - Review by: 2026-11-15
 - Reversible: yes
 - Success signal: Quote draft acceptance rate at 40% or higher by 2026-11-15, as the landing brief sets.
@@ -34,7 +34,7 @@
 - Chosen: Approve before send
 - Decided by: Head of Product, Quoting squad
 - Date: 2026-07-27
-- Owner: Quoting squad lead
+- Owner: Lead, Quoting squad
 - Review by: 2026-11-15
 - Reversible: yes
 - Success signal: Wrong-line-item complaints below 5 a month by 2026-11-15 (illustrative).
@@ -52,9 +52,9 @@
   - Prices from the price book
   - Model suggests prices
 - Chosen: Prices from the price book
-- Decided by: Quoting squad tech lead
+- Decided by: Tech lead, Quoting squad
 - Date: 2026-07-27
-- Owner: Quoting squad lead
+- Owner: Lead, Quoting squad
 - Review by: 2026-11-15
 - Reversible: yes
 - Success signal: No sent quote carries a price that differs from the price book, checked weekly to 2026-11-15 (illustrative).
@@ -70,9 +70,9 @@
   - Roll back when wrong-price quotes pass 2%
   - Roll back when rejected drafts pass 30%
 - Opened: 2026-07-13
-- Waiting on: Quoting squad lead
+- Waiting on: Lead, Quoting squad
 - Decide by: 2026-08-03
-- Recommendation: The Quoting squad product manager recommends the wrong-price trigger at 2%
+- Recommendation: Product manager, Quoting squad, recommends the wrong-price trigger at 2%
 - Source: Acme decide call, 2026-07-27 (illustrative)
 
 ## D-0005: Choose the model tier for quote drafts
@@ -83,7 +83,7 @@
   - vendor-a/xl
   - vendor-a/m
 - Opened: 2026-07-20
-- Waiting on: Quoting squad tech lead
+- Waiting on: Tech lead, Quoting squad
 - Decide by: 2026-08-03
-- Recommendation: The Quoting squad lead recommends vendor-a/m, to stay inside the 9,000 token budget
+- Recommendation: Lead, Quoting squad, recommends vendor-a/m, to stay inside the 9,000 token budget
 - Source: Acme decide call, 2026-07-27 (illustrative)

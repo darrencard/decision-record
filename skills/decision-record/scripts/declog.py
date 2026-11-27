@@ -73,6 +73,7 @@ ROLE_WORDS = {
     "director", "lead", "leads", "manager", "managers", "owner", "product", "engineering", "design", "finance",
     "sales", "marketing", "ops", "operations", "data", "platform", "squad", "team", "and", "&", "staff",
     "principal", "senior", "pm", "em", "eng", "officer", "founder", "founders", "partner", "president",
+    "tech", "technical", "engineer", "engineers", "designer", "analyst", "researcher", "architect", "general",
 }
 # fmt: on
 
@@ -154,23 +155,63 @@ def parse_date(s: str | None) -> date | None:
         return None
 
 
-def is_named_person(name: str | None) -> bool:
-    """True only for a value that names a person. 'The team', 'we', 'leadership' and a
-    bare role such as 'Head of Product' are not names."""
+# Words that name a unit of people. A scoped role names one ("Quoting squad"); a person's name never holds one.
+TEAM_WORDS = {"squad", "team", "group", "guild", "tribe", "pod", "department", "dept", "chapter", "crew", "unit", "function", "org", "organisation", "organization"}
+# Connecting words that may sit inside a role ("Head of Product") but say nothing on their own.
+FILLER = {"of", "the", "and", "&", "for"}
+
+
+def _tokens(text: str) -> list[str]:
+    return re.findall(r"[A-Za-z][A-Za-z'\-]*", text)
+
+
+def is_person_name(name: str | None) -> bool:
+    """True for a person's name: "Maya Ortiz", "Maya Ortiz (VP Product)", "Raj".
+
+    A name holds no role word and no team word outside brackets, so "Quoting squad lead",
+    "Head of Engineering", "the team" and "TBD" are not names, however they are capitalised."""
     n = clean(name)
-    if not n:
+    if not n or "," in n:
         return False
-    # Drop a trailing role in brackets: "Maya Ortiz (VP Product)" -> "Maya Ortiz".
     core = re.sub(r"\s*\(.*?\)\s*", " ", n).strip()
     if not core or core.lower() in COLLECTIVE:
         return False
-    tokens = re.findall(r"[A-Za-z][A-Za-z'\-]*", core)
-    if not tokens:
+    tokens = _tokens(core)
+    if not tokens or any(t.lower() in ROLE_WORDS or t.lower() in TEAM_WORDS for t in tokens):
         return False
-    if all(t.lower() in ROLE_WORDS for t in tokens):
+    return any(t[0].isupper() for t in tokens)
+
+
+def is_scoped_role(name: str | None) -> bool:
+    """True for a role scoped to one team, written "<role>, <team or squad>":
+    "Head of Product, Quoting squad", "Lead, Quoting squad", "Tech lead, Payments team".
+
+    The role is role words only (it names a seat, not a group). The scope names one unit: it ends
+    in a team word and has at least one word of its own before it ("Quoting"). A bare role
+    ("Head of Engineering"), a role with no comma ("Quoting squad lead"), or a scope with no
+    name of its own ("Lead, the squad") is not scoped."""
+    n = clean(name)
+    if not n or n.count(",") != 1:
         return False
-    # A name starts with a capital letter somewhere; "someone in finance" does not.
-    return any(t[0].isupper() and t.lower() not in ROLE_WORDS for t in tokens)
+    role, scope = (part.strip() for part in n.split(","))
+    role_t, scope_t = _tokens(role), _tokens(scope)
+    if not role_t or not scope_t or role.lower() in COLLECTIVE:
+        return False
+    if not all(t.lower() in ROLE_WORDS and t.lower() not in TEAM_WORDS for t in role_t) or all(t.lower() in FILLER for t in role_t):
+        return False
+    if scope_t[-1].lower() not in TEAM_WORDS:
+        return False
+    own = [t for t in scope_t[:-1] if t.lower() not in FILLER and t.lower() not in TEAM_WORDS]
+    return bool(own) and not any(t.lower() in COLLECTIVE for t in own)
+
+
+def is_named_decider(name: str | None) -> bool:
+    """The decider rule: one person's name, or one role scoped to one team. Nothing else."""
+    return is_person_name(name) or is_scoped_role(name)
+
+
+# Kept for callers of 0.2.0 and earlier: the same rule.
+is_named_person = is_named_decider
 
 
 # ---------------------------------------------------------------- the format
@@ -370,8 +411,11 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
     if r.status == "decided":
         if not clean(r.decided_by):
             err("no-decider", "Cannot mark this decided: nobody is named as the decider. Log it as open, waiting on a named person.")
-        elif not is_named_person(r.decided_by):
-            err("decider-not-a-person", f"Cannot mark this decided: {r.decided_by!r} is a group or a role, not a named person.")
+        elif not is_named_decider(r.decided_by):
+            err(
+                "decider-not-a-person",
+                f"Cannot mark this decided: {r.decided_by!r} is a group or a bare role. Name one person, or one role scoped to its team, such as 'Head of Product, Quoting squad'.",
+            )
         if not r.date:
             err("no-decision-date", "A decided record needs the date the call was made.")
         if not clean(r.evidence):
@@ -405,8 +449,8 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
             warn("no-opened-date", "No opened date, so this cannot age. No age is made up.")
         if not r.waiting_on:
             warn("waiting-on-nobody", "Waiting on nobody: name the person the call needs.")
-        elif not is_named_person(r.waiting_on):
-            warn("waiting-on-not-a-person", f"{r.waiting_on!r} is a group or a role. Name one person.")
+        elif not is_named_decider(r.waiting_on):
+            warn("waiting-on-not-a-person", f"{r.waiting_on!r} is a group or a bare role. Name one person, or one role scoped to its team, such as 'Lead, Quoting squad'.")
     if r.status == "dropped" and not r.dropped_because:
         err("drop-without-reason", "A dropped record needs the reason it was dropped.")
 
@@ -437,11 +481,11 @@ def validate(r: Record, as_of: date, source_text: str | None = None, existing: l
                 err("date-not-evidence-date", f"The evidence line is dated {hit['date']} in the source, but the record says {r.date}.")
             if hit and r.status == "decided" and r.decided_by and hit["speaker"] and base_name(hit["speaker"]) != base_name(r.decided_by):
                 warn("evidence-from-someone-else", f"The evidence line was said by {hit['speaker']}, not {r.decided_by}. Check they made the call.")
-        if r.status == "decided" and r.decided_by and is_named_person(r.decided_by):
+        if r.status == "decided" and r.decided_by and is_named_decider(r.decided_by):
             who = base_name(r.decided_by)
             if who not in names and who not in src_norm:
                 err("decider-not-in-source", f"{r.decided_by} does not appear in the source, so the call cannot be attributed to them.")
-        if r.waiting_on and is_named_person(r.waiting_on):
+        if r.waiting_on and is_named_decider(r.waiting_on):
             who = base_name(r.waiting_on)
             if who not in names and who not in src_norm:
                 warn("waiting-on-not-in-source", f"{r.waiting_on} does not appear in the source.")
@@ -512,7 +556,7 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
             continue
         opened = parse_date(r.opened)
         age = days_between(opened, as_of) if opened else None
-        on_whom = r.waiting_on if is_named_person(r.waiting_on) else None
+        on_whom = r.waiting_on if is_named_decider(r.waiting_on) else None
         past_due = age is not None and usual is not None and age > usual
         escalated = on_whom is None and age is not None and usual is not None and age > usual + escalate_after
         items.append(
@@ -621,7 +665,7 @@ def follow_through(records: list[Record], as_of: date) -> dict:
         "without_success_signal": sum(1 for r in decided if not r.success_signal),
         "one_way_doors": sum(1 for r in decided if r.reversible == "no"),
         # The validator refuses these, so this is 0 unless someone edited the log by hand.
-        "no_decider_named": sum(1 for r in decided if not is_named_person(r.decided_by)),
+        "no_decider_named": sum(1 for r in decided if not is_named_decider(r.decided_by)),
         "missed_rows": [{"id": r.id, "title": r.title or r.decision, "owner": r.owner, "outcome_date": r.outcome_date} for r in missed],
         "review_due": review_due,
     }

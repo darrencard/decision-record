@@ -68,7 +68,7 @@ def plural(n: int, word: str) -> str:
 
 
 def lede(key: dict[str, Any]) -> str:
-    """'3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Quoting squad lead, against a usual 7.'"""
+    """'3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.'"""
     f = key["figures"]
     out = f"{f['decided']['value']} decided, {f['open']['value']} open."
     late = [r for r in key["rows"] if f"days_waiting@{r['id']}" in f and "usual_days_to_decide" in f and r["days_waiting"] > f["usual_days_to_decide"]["value"]]

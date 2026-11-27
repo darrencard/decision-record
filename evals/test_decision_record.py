@@ -52,11 +52,20 @@ def draft(name: str) -> declog.Record:
 
 
 class TestNamedDecider(unittest.TestCase):
+    """The rule: a decider is one person's name, or one role scoped to one team ("<role>, <team or squad>")."""
+
     def test_names_pass(self):
         for n in ["Maya Ortiz", "Maya Ortiz (VP Product)", "Raj", "Lena Brandt-Ruiz", "O'Neill"]:
-            self.assertTrue(declog.is_named_person(n), n)
+            self.assertTrue(declog.is_person_name(n), n)
+            self.assertTrue(declog.is_named_decider(n), n)
 
-    def test_groups_roles_and_blanks_fail(self):
+    def test_scoped_roles_pass(self):
+        for n in ["Head of Product, Quoting squad", "Lead, Quoting squad", "Tech lead, Quoting squad", "Product manager, Payments team", "VP Engineering, Platform group"]:
+            self.assertTrue(declog.is_scoped_role(n), n)
+            self.assertTrue(declog.is_named_decider(n), n)
+            self.assertFalse(declog.is_person_name(n), n)
+
+    def test_groups_bare_roles_and_blanks_fail(self):
         for n in [
             "the team",
             "We",
@@ -67,12 +76,36 @@ class TestNamedDecider(unittest.TestCase):
             "",
             None,
             "Head of Product",
+            "Head of Engineering",
             "VP Engineering",
             "the squad",
             "someone in finance",
             "CPO",
         ]:
-            self.assertFalse(declog.is_named_person(n), n)
+            self.assertFalse(declog.is_named_decider(n), n)
+
+    def test_unscoped_or_badly_scoped_roles_fail_however_they_are_capitalised(self):
+        for n in [
+            "Quoting squad lead",  # a role with its team in front, no comma: not the scoped form
+            "Quoting Squad Lead",
+            "Payments Lead",
+            "Lead, the squad",  # a scope with no name of its own
+            "Lead, Quoting",  # a scope that is not a team
+            "Lead, Quoting squad, Payments team",  # two scopes
+            "Maya Ortiz, Quoting squad",  # a name is not a role
+            "The team, Quoting squad",
+            "TBD, Quoting squad",
+            "Lead, TBD squad",
+        ]:
+            self.assertFalse(declog.is_named_decider(n), n)
+
+    def test_the_validator_uses_the_rule(self):
+        src = "Date: 2026-11-12\nHead of Engineering: My call: we ship it.\nLead, Quoting squad: My call: we ship it today.\n"
+        base = {"title": "Ship it", "status": "decided", "decision": "Ship it.", "date": "2026-11-12", "source": "notes"}
+        bare = declog.record_from_dict({**base, "decided_by": "Head of Engineering", "evidence": "My call: we ship it."})
+        self.assertIn("decider-not-a-person", rules(declog.validate(bare, AS_OF, src), "error"))
+        scoped = declog.record_from_dict({**base, "decided_by": "Lead, Quoting squad", "evidence": "My call: we ship it today."})
+        self.assertEqual(rules(declog.validate(scoped, AS_OF, src), "error"), set())
 
 
 class TestClearDecision(unittest.TestCase):

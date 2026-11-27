@@ -170,11 +170,13 @@ class LoopRecord(Work):
     def test_named_people_own_every_decision(self):
         key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
         for r in key["rows"]:
-            self.assertTrue(declog.is_named_person(r["owner"]), r)
+            self.assertTrue(declog.is_named_decider(r["owner"]), r)
         for d in key["decided"]:
-            self.assertTrue(declog.is_named_person(d["decided_by"]), d)
+            self.assertTrue(declog.is_named_decider(d["decided_by"]), d)
+            self.assertTrue(declog.is_scoped_role(d["decided_by"]), d)
         self.assertEqual(key["brief"]["tested_by"], ["D-0001"])
-        self.assertEqual(key["next_step_by"], "Quoting squad lead")
+        self.assertEqual(key["decided"][0]["decided_by"], key["brief"]["decides"])  # the brief's own scoped role
+        self.assertEqual(key["next_step_by"], "Lead, Quoting squad")
 
 
 class Figures(unittest.TestCase):
@@ -259,7 +261,7 @@ class Refusals(Work):
 
     def test_an_invalid_log_writes_nothing(self):
         before = self.record.read_bytes()
-        self.log.write_text(self.log.read_text(encoding="utf-8").replace("- Decided by: Quoting squad tech lead", "- Decided by: The team"), encoding="utf-8")
+        self.log.write_text(self.log.read_text(encoding="utf-8").replace("- Decided by: Tech lead, Quoting squad", "- Decided by: The team"), encoding="utf-8")
         code, err = self.run_loop()
         self.assertEqual(code, 2)
         self.assertIn("invalid record", err)
@@ -288,7 +290,7 @@ class Page(unittest.TestCase):
         self.assertNotIn("var(--landed)", self.body)
         self.assertNotIn("var(--stalled)", self.body)
         brass = re.findall(r'<span class="who">([^<]*)</span>', self.body)
-        self.assertEqual(set(brass), {"Head of Product, Quoting squad", "Quoting squad tech lead", "Quoting squad lead"})
+        self.assertEqual(set(brass), {"Head of Product, Quoting squad", "Tech lead, Quoting squad", "Lead, Quoting squad"})
         # The brand mark's brass bar, and the next step's named person. Nothing else.
         self.assertEqual(self.body.count("var(--brass)"), 2)
 

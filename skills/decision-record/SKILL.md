@@ -15,7 +15,7 @@ Everything runs locally. The scripts are Python 3.11 or later, standard library 
 
 ## The 3 rules that override everything else
 
-1. **No named decider, no decision.** A record is `decided` only when one named person made the call and the source holds their words. "The team", "we", "leadership" or a bare role is not a decider. If nobody made the call, log it as `open`, waiting on the person who has to make it. Say so to the user plainly.
+1. **No named decider, no decision.** A record is `decided` only when one named decider made the call and the source holds their words. A named decider is either one person's name ("Maya Ortiz", "Maya Ortiz (VP Product)") or one role scoped to one team, written exactly "<role>, <team or squad>" ("Head of Product, Quoting squad", "Lead, Quoting squad"). "The team", "we", "leadership", "TBD", a bare role ("Head of Engineering") or a role with its team in front and no comma ("Quoting squad lead") is not a decider. Use the scoped form the landing brief uses for "Decides the next step". If nobody made the call, log it as `open`, waiting on the person who has to make it. Say so to the user plainly.
 2. **Never do the arithmetic.** Days waiting, the usual time to decide, past due, escalation and the follow-through rate all come from `scripts/open_decisions.py`. Quote its output. Do not count days or work out a rate yourself.
 3. **Never talk past the validator.** If `scripts/record.py` refuses a record, fix the record from the source or change its status. Do not reword the evidence to slip under a rule, invent a decider, or edit the log file by hand.
 
@@ -45,13 +45,13 @@ Work from the skill's root. Ask the user for today's date if you do not know it:
    - `status`: `decided` or `open` (`dropped` only through `record.py drop`).
    - `decision`: one sentence. For an open record, the question with its options.
    - `options`: every option the source names; `chosen`: the one picked, worded as in `options`.
-   - `decided_by`: the one person who made the call. `date`: when they made it, `YYYY-MM-DD`.
+   - `decided_by`: the one person, or the one scoped role, who made the call, exactly as the source's speaker line names them. `date`: when they made it, `YYYY-MM-DD`.
    - `owner`: who carries it out. `review_by`: when to check it worked.
    - `reversible`: `yes`, `no` or `unknown`. Take it from the source; if nobody said, `unknown`.
    - `success_signal`: the result that would show it worked, with a metric, a threshold and a date. Take it from the source; if nobody said, leave it out and ask the user for one before writing. Without it, the review has nothing to test and the record can never be `worked`.
    - `assumptions`: what the call rests on, one per item, if the source says. A review tests these.
    - `opened`: when the question was first raised. This is what lets the log age a call.
-   - `waiting_on`: for an open record, the one person the call needs. `decide_by`: the date the call is needed by, if the source gives one.
+   - `waiting_on`: for an open record, the one person or scoped role the call needs. `decide_by`: the date the call is needed by, if the source gives one.
    - `recommendation`: who recommends what, if someone in the source does, for example "Sam Whitfield recommends the per-trade setting". Never your own.
    - `source`: where the text came from (channel, meeting, date). `evidence`: the decider's line, copied word for word. When the line has a dated timestamp or sits under a `Date:` header, `date` must match it.
 4. **Check.** `python3 scripts/record.py check --draft run/draft.json --source run/source.txt --as-of YYYY-MM-DD --log decisions.md`. Fix every error from the source. Report each warning to the user (no owner, no review date, reversibility unknown, a one-way door with no review date).

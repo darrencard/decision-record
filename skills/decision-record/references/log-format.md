@@ -14,7 +14,7 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 - Chosen: Approve before send
 - Decided by: Head of Product, Quoting squad
 - Date: 2026-11-12
-- Owner: Quoting squad lead
+- Owner: Lead, Quoting squad
 - Review by: 2026-12-15
 - Reversible: yes
 - Success signal: Wrong-line-item complaints fall below 5 a month by 2026-12-15 (illustrative), with quote send time no more than 1 day slower.
@@ -34,7 +34,7 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 | Decision | one sentence | decided |
 | Options considered | one sub-bullet per option | no (a warning below two) |
 | Chosen | one of the options | no |
-| Decided by | one named person | decided |
+| Decided by | one person's name, or one role scoped to one team: "<role>, <team or squad>" | decided |
 | Date | YYYY-MM-DD, not after today | decided |
 | Owner | who carries it out | no (warning) |
 | Review by | YYYY-MM-DD, not before Date | no (warning) |
@@ -42,7 +42,7 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
 | Success signal | the result that would show it worked: metric, threshold, date | no (warning); required for Outcome worked |
 | Assumptions | one sub-bullet per assumption | no |
 | Opened | YYYY-MM-DD | no (without it a call cannot age) |
-| Waiting on | one named person | open (warning) |
+| Waiting on | one person's name, or one scoped role | open (warning) |
 | Decide by | YYYY-MM-DD, the date the call is needed by; becomes the Leader Report deadline | no (warning once passed) |
 | Recommendation | who recommends what, from the source | no |
 | Source | where the text came from | no |

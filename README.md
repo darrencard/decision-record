@@ -14,7 +14,7 @@ Install the decision-record skill: run /plugin marketplace add darrencard/landin
 
 **Where it sits:** step 01 (Decide) of the Landing Loop. It reads the bet's landing brief and the `portfolio` key bet-portfolio-review wrote, writes only its `decisions` key in `landing/<bet>.json`, and feeds the Leader Report's decision slide unchanged.
 
-**How it works:** Python checks every record against the source before it is written. The decider's words must be in the source, word for word, on the date the record gives. "The team" or "leadership" is not a decider, so the call is logged as open, waiting on a named person. Code computes every count and age. The model never does the maths.
+**How it works:** Python checks every record against the source before it is written. The decider's words must be in the source, word for word, on the date the record gives. A decider is one person's name ("Maya Ortiz") or one role scoped to one team, written "<role>, <team or squad>" ("Head of Product, Quoting squad"). A group or a bare role ("the team", "Head of Engineering", "TBD") is not a decider, so the call is logged as open, waiting on a named person. Code computes every count and age. The model never does the maths.
 
 ## Try it in one minute
 
@@ -27,8 +27,8 @@ python3 examples/acme/sample.py
 It reads Acme's decide call of 2026-07-27 ([sources/](examples/acme/sources)), checks five draft records against it, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json). It starts from the landing-loop record filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
 
 ```text
-3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Quoting squad lead, against a usual 7.
-Next step: D-0004 waits on Quoting squad lead: set the rollback trigger for quote drafting by 2026-08-03.
+3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.
+Next step: D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03.
 ```
 
 ## Install
@@ -66,13 +66,13 @@ Open decisions go in `rows`, in the Leader Report's decision format (`ask`, `opt
   "as_of": "2026-07-27",
   "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
   "rows": [{"ask": "Set the rollback trigger for quote drafting", "options": "Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30%",
-            "recommendation": "The Quoting squad product manager recommends the wrong-price trigger at 2%. Waiting on Quoting squad lead, 14 days open, past the usual 7 days to decide.",
-            "deadline": "2026-08-03", "owner": "Quoting squad lead", "days_waiting": 14, "id": "D-0004", "source": "Acme decide call, 2026-07-27 (illustrative)"}],
+            "recommendation": "Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, past the usual 7 days to decide.",
+            "deadline": "2026-08-03", "owner": "Lead, Quoting squad", "days_waiting": 14, "id": "D-0004", "source": "Acme decide call, 2026-07-27 (illustrative)"}],
   "decided": [{"id": "D-0001", "title": "Build quote drafting now, against its landing brief", "decided_by": "Head of Product, Quoting squad", "date": "2026-07-27"}],
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
-  "figures": {"past_due": {"value": 1, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 1de81b65e887)",
+  "figures": {"past_due": {"value": 1, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
               "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"}},
-  "next_step": "D-0004 waits on Quoting squad lead: set the rollback trigger for quote drafting by 2026-08-03."
+  "next_step": "D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03."
 }
 ```
 
@@ -82,7 +82,7 @@ Its words are a decision's own: open, decided, dropped, past due. A decision's o
 
 | Feature | What it does for you |
 |---|---|
-| Named decider rule | No decision in the log that nobody owns |
+| Named decider rule | No decision in the log that nobody owns: a person's name, or a role scoped to its team ("Lead, Quoting squad") |
 | Evidence check | Every record traces back to the moment, and the words, of the call |
 | Open decisions | The stuck calls and the people they wait on, oldest first, past due against the log's own median time to decide |
 | Success signal | Each call names the result that would show it worked; the bet's own call names the brief's bar |
