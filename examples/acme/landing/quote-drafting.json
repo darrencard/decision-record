@@ -280,7 +280,7 @@
     "gaps": [],
     "next_step": "No open decisions on this bet.",
     "next_step_by": null,
-    "next_in_loop": "Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts.",
+    "next_in_loop": "",
     "illustrative": true
   }
 }

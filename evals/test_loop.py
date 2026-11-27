@@ -264,6 +264,8 @@ class LoopRecord(Work):
         self.assertEqual(key["brief"]["tested_by"], ["D-0001"])
         self.assertEqual(key["decided"][0]["decided_by"], key["brief"]["decides"])  # the brief's own scoped role
         self.assertIsNone(key["next_step_by"])  # nothing is open on 2026-11-26
+        self.assertEqual(key["next_step"], "No open decisions on this bet.")
+        self.assertEqual(key["next_in_loop"], "")  # no hand-on line while nothing is open
         self.assertEqual(key["rows"], [])
 
 

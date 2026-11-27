@@ -189,7 +189,9 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     call = (
         f'<div class="need"><b>Next step</b><div class="need-r"><p>{e(key["next_step"])}</p>'
         + (f'<span class="mono" style="color:var(--brass);font-size:11px">{e(who)}</span>' if who else "")
-        + f'</div><p style="margin-top:8px">{e(key["next_in_loop"])}</p></div>'
+        + "</div>"
+        + (f'<p style="margin-top:8px">{e(key["next_in_loop"])}</p>' if key["next_in_loop"] else "")
+        + "</div>"
     )
     return (
         '<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -208,7 +210,9 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
 def markdown(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     """The plain-text twin of the page."""
     out = [f"# {title}", "", f"Read {key['as_of']} · {key['tool']}" + (" · Illustrative" if key.get("illustrative") else ""), ""]
-    out += [lede(key), "", f"Next step: {key['next_step']}", "", key["next_in_loop"], "", "## Open, as the Leader Report shows them", ""]
+    out += [lede(key), "", f"Next step: {key['next_step']}", ""]
+    out += [key["next_in_loop"], ""] if key["next_in_loop"] else []
+    out += ["## Open, as the Leader Report shows them", ""]
     cols = key["columns"]
     out += ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
     out += ["| " + " | ".join("" if r[c] is None else str(r[c]).replace("|", "\\|") for c in cols) + " |" for r in key["rows"]]

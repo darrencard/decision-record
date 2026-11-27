@@ -6,8 +6,6 @@ Read 2026-11-26 · decision-record 0.3.0 · Illustrative
 
 Next step: No open decisions on this bet.
 
-Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts.
-
 ## Open, as the Leader Report shows them
 
 | ask | options | recommendation | deadline | owner | days_waiting | id | source |

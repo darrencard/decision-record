@@ -30,6 +30,7 @@ import landing_brief  # noqa: E402
 
 VERSION = "0.3.0"
 TOOL = f"decision-record {VERSION}"
+NEXT_IN_LOOP = "Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts."
 SCHEMA = "landing-loop/1"
 KEY = "decisions"
 # The record order (Landing Loop contract). A skill reads only keys earlier than its own.
@@ -195,7 +196,7 @@ def build(
         "gaps": gaps,
         "next_step": next_step,
         "next_step_by": who,
-        "next_in_loop": "Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts.",
+        "next_in_loop": NEXT_IN_LOOP if q["items"] else "",
     }
     if illustrative:
         key["illustrative"] = True
