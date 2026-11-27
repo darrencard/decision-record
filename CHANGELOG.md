@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4, 2026-11-27
+
+- Text runs the full column: the heading, the lede, the next step, section text, notes and captions are as wide as the scorecard frame. The page's own CSS lifts every cap on text (the template's `.lede` 62ch, and this page's heading 22ch and notes 80ch). It sets `text-wrap: balance` on the heading and `pretty` on paragraphs. The next step and the figures at a glance now stack under the scorecard, so the next step runs the full column too. The vendored template is unchanged. Test: the page CSS sets no max-width on h1, .lede or p, and the override comes after the template's cap.
+
 ## 0.3.3, 2026-11-27
 
 - Fix round 4: when every role in the days-to-decide frame shares one team, the team (`Quoting squad`) prints once in the frame head and each row prints only the role, so no role wraps to two lines. Tests for it and for the figure column's uppercase words.

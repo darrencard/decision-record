@@ -77,7 +77,7 @@ Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report'
 
 ```json
 "decisions": {
-  "tool": "decision-record 0.3.3",
+  "tool": "decision-record 0.3.4",
   "as_of": "2026-11-26",
   "reads": {"brief": true, "portfolio": true},
   "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
@@ -86,8 +86,8 @@ Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report'
                "decided_by": "Head of Product, Quoting squad", "date": "2026-08-10", "owner": "Tech lead, Quoting squad",
                "source": "Acme spec review call, 2026-08-10 (illustrative)"}],
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
-  "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
-              "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.3: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
+  "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.4: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
+              "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.4: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
   "next_step": "No open decisions on this project."
 }
 ```
@@ -117,6 +117,6 @@ Its words are a decision's own: open, decided, dropped, waiting longer than usua
 - [SKILL.md](skills/decision-record/SKILL.md): the workflow and every rule the validator enforces.
 - [references/log-format.md](skills/decision-record/references/log-format.md): the log format.
 
-Version 0.3.3. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).
+Version 0.3.4. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).
 
 Claude and Claude Code are trademarks of Anthropic, PBC. These skills are independent and not affiliated with or endorsed by Anthropic.

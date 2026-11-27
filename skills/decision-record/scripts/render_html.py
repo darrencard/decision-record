@@ -51,7 +51,7 @@ PAGE_CSS = """
 main.solo{margin-left:0}
 .solo .slide{min-height:0}
 .solo .slide.cover{min-height:0;padding-top:40px;padding-bottom:48px;justify-content:flex-start}
-.solo h1{font-size:clamp(34px,4.6vw,60px);line-height:1;letter-spacing:-.04em;max-width:22ch;margin-bottom:20px}
+.solo h1{font-size:clamp(34px,4.6vw,60px);line-height:1;letter-spacing:-.04em;margin-bottom:20px;text-wrap:balance}
 .solo .lede{margin-bottom:28px}
 .solo .lede b{color:var(--t1);font-weight:500}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px 48px;align-items:start;margin-top:32px}
@@ -83,12 +83,15 @@ main.solo{margin-left:0}
 .quote span{display:block;font:400 11px/18px var(--mono);color:var(--t3)}
 .solo details{margin-top:20px}
 .solo details .tablewrap{margin-top:12px}
-.note{max-width:80ch;font-size:12.5px;line-height:1.6;color:var(--t2);margin:12px 0 0}
+.note{font-size:12.5px;line-height:1.6;color:var(--t2);margin:12px 0 0}
 .eng td{font-size:12px;vertical-align:top}
 .foot{max-width:1120px;margin:0 auto;padding:28px 40px 64px;color:var(--t3);font-size:12px}
 @media (max-width:1100px){.cols{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:980px){.foot{padding:24px 16px 48px}.solo .slide.cover{padding-top:24px}.calls{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){.figs>div{grid-template-columns:1fr;gap:0}.call{padding:16px 16px 12px}}
+.solo h1,.solo .lede,.solo .next,.solo .slide p,.solo .slide li,.solo .sc-c,.sk figcaption{max-width:none}
+.solo .slide p,.solo .slide li,.solo .sc-c{text-wrap:pretty}
+.solo .cover .cols{grid-template-columns:minmax(0,1fr)}
 """
 
 NUMBER_WORDS = ("No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve")
@@ -500,10 +503,7 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
         f"Here the target is {e(b['metric'].lower())} at {e(b['bar'])} or {e(b['better'])} by {e(b['by'])}."
     )
     pic = days_rows(key) if spans(key) else ""
-    cover = (
-        f'<section class="slide cover">{header}<h1>{e(verdict(key))}</h1><p class="lede">{lede_html}</p>'
-        f'{pic}<div class="cols">{next_box(key)}{glance(key)}</div></section>'
-    )
+    cover = f'<section class="slide cover">{header}<h1>{e(verdict(key))}</h1><p class="lede">{lede_html}</p>{pic}<div class="cols">{next_box(key)}{glance(key)}</div></section>'
     opens = ""
     if key["rows"]:
         blocks = "".join(open_block(r, key["figures"].get(f"days_waiting@{r['id']}")) for r in key["rows"])

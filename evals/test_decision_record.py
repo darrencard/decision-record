@@ -680,11 +680,11 @@ class TestRepoHygiene(unittest.TestCase):
         sys.path.insert(0, str(SCRIPTS))
         import loop
 
-        self.assertEqual(plugin["version"], "0.3.3")
-        self.assertIn('version: "0.3.3"', skill)
-        self.assertIn('version = "0.3.3"', project)
-        self.assertIn("## 0.3.3, 2026-11-27", changelog)
-        self.assertEqual(loop.VERSION, "0.3.3")
+        self.assertEqual(plugin["version"], "0.3.4")
+        self.assertIn('version: "0.3.4"', skill)
+        self.assertIn('version = "0.3.4"', project)
+        self.assertIn("## 0.3.4, 2026-11-27", changelog)
+        self.assertEqual(loop.VERSION, "0.3.4")
 
 
 if __name__ == "__main__":
