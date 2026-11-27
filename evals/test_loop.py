@@ -412,6 +412,12 @@ class Page(unittest.TestCase):
         self.assertIn('<span class="o"><i>Decides</i>Head of Product, Quoting squad</span><span class="d"><i>When</i>was due 2026-11-15</span>', body)
         self.assertNotIn("Book a call", body, "a sample is the skill's own output: no call to action")
 
+    def test_a_shared_team_prints_once(self):
+        self.assertEqual(render_html.common_scope(["Head of Product, Quoting squad", "Tech lead, Quoting squad"]), "Quoting squad")
+        self.assertIsNone(render_html.common_scope(["Head of Product, Quoting squad", "Tech lead, Payments team"]))
+        self.assertIsNone(render_html.common_scope(["Head of Product, Quoting squad", "nobody named"]))
+        self.assertIsNone(render_html.common_scope([]))
+
     def test_the_rows_print_each_decision_its_days_and_who_made_it(self):
         self.assertEqual(svgkit.unprinted(self.html), [])
         key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
@@ -422,7 +428,14 @@ class Page(unittest.TestCase):
         for d in key["decided"]:
             days = key["figures"]["days_to_decide@" + d["id"]]["value"]
             self.assertIn(f'<span class="sc-l"><b>{days} DAYS</b></span>', frame)
-            self.assertIn(f"{render_html.e(d['decided_by'])}</span>", frame)
+            role = d["decided_by"].rsplit(", ", 1)[0]
+            self.assertIn(f"</svg>{render_html.e(role)}</span>", frame, "each row prints only the role")
+        for f in re.findall(r'<span class="sc-l">(.*?)</span>', frame):
+            text = re.sub(r"<[^>]+>", "", f)
+            self.assertEqual(text, text.upper(), "the figure column is numerals and uppercase words")
+        # The team every role shares prints once, in the frame head, so no role wraps to two lines.
+        self.assertEqual(frame.count("Quoting squad"), 1)
+        self.assertIn('<span class="sc-k">Quoting squad</span></span><span class="sc-i">', frame)
         # The plan is printed once, in the frame head; the part past it is hatched on exactly the two slow calls.
         self.assertEqual(frame.count("plan 14 days"), 1)
         self.assertEqual(frame.count('class="ov"'), 2)

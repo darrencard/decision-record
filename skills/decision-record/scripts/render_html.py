@@ -334,20 +334,32 @@ def spans(key: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+def common_scope(whos: list[str]) -> str | None:
+    """The team every role in the frame shares ("Head of Product, Quoting squad" and "Tech lead, Quoting squad" share
+    "Quoting squad"), printed once in the frame head so each row prints only the role and no role wraps. None when
+    any row has no scope or the scopes differ."""
+    scopes = {w.rsplit(", ", 1)[1] if ", " in w else None for w in whos}
+    return scopes.pop() if len(scopes) == 1 and None not in scopes else None
+
+
 def days_rows(key: dict[str, Any]) -> str:
     """One row per decision: its name, the plan (the usual days) above the days it took, `28 DAYS`, and the person in
     brass. Bars share one scale, the longest row; the part past the plan is hatched."""
     rows = spans(key)
     u = usual(key)
     top = max([s["days"] for s in rows] + [u or 0])
+    scope = common_scope([s["who"] for s in rows])
     out = []
     for i, s in enumerate(rows, start=1):
         picture = sk.paired_bars(u, s["days"], top=top, hatch_id=f"dr-over-{i}") if u is not None else sk.share_bar(s["days"], top)
         days = f"{plural(s['days'], 'day').upper()}{' WAITING' if s['open'] else ''}"
-        word = (sk.check_word("open", ink=True) if s["open"] else "") + sk.person_call(s["who"])
+        who = s["who"].rsplit(", ", 1)[0] if scope else s["who"]
+        word = (sk.check_word("open", ink=True) if s["open"] else "") + sk.person_call(who)
         out.append(sk.sc_row(s["title"], picture=picture, figure=sk.figure_line(days), word=word))
     plan = f"plan {u:g} days" if u is not None else "days"
     key_ = sk.legend("plan", plan) + sk.legend("actual", "took") + sk.legend("over", "over plan") if u is not None else ""
+    if scope:
+        key_ += f'<span class="sc-k">{e(scope)}</span>'
     return sk.sc_frame(
         out,
         label=timeline_label(key, rows),
