@@ -27,9 +27,23 @@ python3 examples/acme/sample.py
 It reads Acme's decide call of 2026-07-27 ([sources/](examples/acme/sources)), checks five draft records against it, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json). It starts from the landing-loop record filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
 
 ```text
-3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.
+3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.
 Next step: D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03.
 ```
+
+That is the Decide step, read on 2026-07-27, before 02 Spec: the rollback trigger (D-0004) and the model tier (D-0005) are still open. Both were decided at the spec review call of 2026-08-10 ([sources/](examples/acme/sources)): the Head of Product set the trigger at 2% wrong-price quotes, which closed the spec hold of 2026-08-03, and the tech lead chose vendor-a/m. The sample records both with `record.py decide` into [later/decisions.md](examples/acme/later/decisions.md). The same log read later:
+
+```bash
+python3 skills/decision-record/scripts/open_decisions.py --log examples/acme/later/decisions.md --as-of 2026-11-26
+```
+
+```text
+No open decisions in the log.
+Usual time to decide: 14 days (median of 5 decided records).
+Review due: D-0001 Build quote drafting now, against its landing brief, 11 days past 2026-11-15 (owner: Lead, Quoting squad).
+```
+
+The later read writes no record key, so the `decisions` key stays as of 2026-07-27 and comes before `spec` in record order.
 
 ## Install
 
@@ -66,17 +80,19 @@ Open decisions go in `rows`, in the Leader Report's decision format (`ask`, `opt
   "as_of": "2026-07-27",
   "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
   "rows": [{"ask": "Set the rollback trigger for quote drafting", "options": "Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30%",
-            "recommendation": "Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, past the usual 7 days to decide.",
+            "recommendation": "Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, longer than the usual 7 days to decide.",
             "deadline": "2026-08-03", "owner": "Lead, Quoting squad", "days_waiting": 14, "id": "D-0004", "source": "Acme decide call, 2026-07-27 (illustrative)"}],
   "decided": [{"id": "D-0001", "title": "Build quote drafting now, against its landing brief", "decided_by": "Head of Product, Quoting squad", "date": "2026-07-27"}],
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
-  "figures": {"past_due": {"value": 1, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
-              "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"}},
+  "figures": {"waiting_long": {"value": 1, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
+                              "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"},
+              "past_due": {"value": 0, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); open with a decide-by date before as_of",
+                           "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"}},
   "next_step": "D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03."
 }
 ```
 
-Its words are a decision's own: open, decided, dropped, past due. A decision's outcome, read later, is worked, pending or missed. A bet's status belongs to did-it-land alone.
+Its words are a decision's own: open, decided, dropped, waiting longer than usual (against the log's own median time to decide), past due (only when the decide-by date has passed). A decision's outcome, read later, is worked, pending or missed. A bet's status belongs to did-it-land alone.
 
 ## What you get
 
@@ -84,7 +100,7 @@ Its words are a decision's own: open, decided, dropped, past due. A decision's o
 |---|---|
 | Named decider rule | No decision in the log that nobody owns: a person's name, or a role scoped to its team ("Lead, Quoting squad") |
 | Evidence check | Every record traces back to the moment, and the words, of the call |
-| Open decisions | The stuck calls and the people they wait on, oldest first, past due against the log's own median time to decide |
+| Open decisions | The stuck calls and the people they wait on, oldest first: waiting longer than the log's own median time to decide, and past due once the decide-by date has passed |
 | Success signal | Each call names the result that would show it worked; the bet's own call names the brief's bar |
 | Leader Report feed | The board deck shows the same calls, owners and deadlines as the log |
 | Append-only log, ADR export, CI check | `record.py validate` blocks a hand-edited record in review; `record.py adr` writes `docs/adr/` |

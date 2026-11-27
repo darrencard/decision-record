@@ -536,10 +536,11 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
     """The calls still waiting on someone, oldest first.
 
     Ported from Throughline's decision queue. An age is only ever a measured elapsed
-    time: no opened date means no age. A call is past due when it has waited longer
-    than a decision usually takes here (the median days-to-decide in this log, or the
-    expected days the caller sets). It escalates when it is past due by
-    `escalate_after` further days and nobody is named to make it.
+    time: no opened date means no age. A call is waiting longer than usual when it has
+    waited longer than a decision usually takes here (the median days-to-decide in this
+    log, or the expected days the caller sets). It is past due only when its decide-by
+    date has passed. It escalates when it has waited `escalate_after` days longer than
+    usual and nobody is named to make it.
     """
     history = days_to_decide(records)
     enough = len(history) >= MIN_HISTORY_FOR_MEDIAN
@@ -557,7 +558,9 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
         opened = parse_date(r.opened)
         age = days_between(opened, as_of) if opened else None
         on_whom = r.waiting_on if is_named_decider(r.waiting_on) else None
-        past_due = age is not None and usual is not None and age > usual
+        waiting_long = age is not None and usual is not None and age > usual
+        deadline = parse_date(r.decide_by)
+        past_due = deadline is not None and deadline < as_of
         escalated = on_whom is None and age is not None and usual is not None and age > usual + escalate_after
         items.append(
             {
@@ -566,8 +569,10 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
                 "opened": r.opened,
                 "days_waiting": age,
                 "waiting_on": on_whom,
-                "waiting_phrase": wait_phrase(age, past_due, usual),
+                "decide_by": r.decide_by,
+                "waiting_phrase": wait_phrase(age, waiting_long, usual, r.decide_by if past_due else None),
                 "owner_phrase": f"Waiting on {on_whom}" if on_whom else "Waiting on nobody named",
+                "waiting_long": waiting_long,
                 "past_due": past_due,
                 "escalated": escalated,
             }
@@ -581,6 +586,7 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
         "items": items,
         "counts": {
             "open": len(items),
+            "waiting_long": sum(1 for i in items if i["waiting_long"]),
             "past_due": sum(1 for i in items if i["past_due"]),
             "escalated": sum(1 for i in items if i["escalated"]),
             "waiting_on_nobody": sum(1 for i in items if not i["waiting_on"]),
@@ -590,20 +596,22 @@ def open_queue(records: list[Record], as_of: date, expected_days: float | None =
     }
 
 
-def wait_phrase(age: int | None, past_due: bool, usual: float | None) -> str:
+def wait_phrase(age: int | None, waiting_long: bool, usual: float | None, passed_deadline: str | None = None) -> str:
+    """How long a call has waited. "Longer than usual" is against the log's usual time to
+    decide; "past due" is only ever a decide-by date that has passed."""
+    due = f", past due since {passed_deadline}" if passed_deadline else ""
     if age is None:
-        return "No opened date, so no age"
-    if past_due and usual is not None:
+        return "No opened date, so no age" + due
+    if waiting_long and usual is not None:
         over = age - usual
-        over_s = f"{over:g}"
-        return f"{age} day{'' if age == 1 else 's'} waiting, {over_s} past the usual {usual:g}"
+        return f"{age} day{'' if age == 1 else 's'} waiting, {over:g} longer than the usual {usual:g}" + due
     if age == 0:
-        return "Opened today"
-    return f"{age} day{'' if age == 1 else 's'} waiting"
+        return "Opened today" + due
+    return f"{age} day{'' if age == 1 else 's'} waiting" + due
 
 
 def headline(items: list[dict]) -> str:
-    """'4 open · oldest 12 days · 1 past due'. A clause appears only when it is true."""
+    """'4 open · oldest 12 days · 1 waiting longer than usual · 1 past due'. A clause appears only when it is true."""
     if not items:
         return "No open decisions in the log."
     parts = [f"{len(items)} open"]
@@ -611,6 +619,9 @@ def headline(items: list[dict]) -> str:
     if ages:
         oldest = max(ages)
         parts.append("all opened today" if oldest == 0 else f"oldest {oldest} day{'' if oldest == 1 else 's'}")
+    long_ = sum(1 for i in items if i["waiting_long"])
+    if long_:
+        parts.append(f"{long_} waiting longer than usual")
     due = sum(1 for i in items if i["past_due"])
     if due:
         parts.append(f"{due} past due")
@@ -703,8 +714,10 @@ def leader_report_rows(records: list[Record], as_of: date, expected_days: float 
             wait += f", {item['days_waiting']} day{'' if item['days_waiting'] == 1 else 's'} open"
         if item["escalated"]:
             wait += ", escalated"
-        elif item["past_due"]:
-            wait += f", past the usual {q['usual_days_to_decide']:g} days to decide"
+        elif item["waiting_long"]:
+            wait += f", longer than the usual {q['usual_days_to_decide']:g} days to decide"
+        if item["past_due"]:
+            wait += f", past due since {r.decide_by}"
         wait += "."
         rec = f"{r.recommendation.rstrip('.')}. {wait}" if r.recommendation else f"No recommendation recorded. {wait}"
         rows.append(

@@ -10,6 +10,9 @@
 - `from_thread.py`: Slack and Linear exports first, CSV as the fallback, into a source the checks read. No Leader Report collector reads thread text, so this one is new.
 - Outcome words are now worked, pending and missed. Landed, watch and stalled are a bet's status, and only did-it-land sets them. Logs written before 0.3.0 read as the new words.
 - Python 3.11 or later, like the rest of the loop.
+- Past due means a passed decide-by date and nothing else. A call that has waited longer than the log's usual time to decide is "waiting longer than usual", a new `waiting_long` flag, count and figure. Escalation follows the long wait, as before.
+- The Acme story holds across the loop: the record key stays as of 2026-07-27 with the rollback trigger (D-0004) and model tier (D-0005) open, and the sample also records both calls from the spec review call of 2026-08-10 into `later/decisions.md` and reads that log as of 2026-11-26.
+- `record.py decide --source-name` cites where the call was made. `decide` rewrites the log through a temp file. Every entry script checks for Python 3.11 before it reads or writes anything. The page sets selection and the focus ring to ink, not the template's green.
 - The decider rule is explicit: one person's name, or one role scoped to one team, written "<role>, <team or squad>" ("Head of Product, Quoting squad"). A bare role, a group, or a role with its team in front and no comma ("Quoting squad lead") fails, however it is capitalised. The Acme sample uses scoped roles.
 
 ## 0.2.0, 2026-11-26

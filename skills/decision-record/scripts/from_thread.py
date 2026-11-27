@@ -33,6 +33,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+if sys.version_info < (3, 11):  # noqa: UP036  (say so plainly on an old Python, before reading or writing anything)
+    sys.exit("decision-record needs Python 3.11 or later; try python3.12.")
+
 MAX_BYTES = 20_000_000
 
 

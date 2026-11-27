@@ -1,0 +1,10 @@
+Illustrative sample. Acme is an invented company and every figure and date here is made up, and people are named by their role.
+Acme spec review call: quote drafting
+Date: 2026-08-10
+Attendees: Head of Product, Quoting squad; Lead, Quoting squad; Tech lead, Quoting squad; Product manager, Quoting squad
+
+Product manager, Quoting squad (00:00:30): spec-auditor held the PRD on 3 August. The rollback plan has no trigger threshold, and the eval plan has no time it runs.
+Lead, Quoting squad (00:01:20): The week of pilot numbers is in. I recommend the wrong-price trigger at 2%, as the product manager did.
+Head of Product, Quoting squad (00:02:05): My call: we roll back quote drafting when wrong-price quotes pass 2%. The tech lead owns the trigger.
+Tech lead, Quoting squad (00:03:10): The evals ran on both tiers. vendor-a/m drafts quotes in v1. Long drafts go to vendor-a/xl. That is my call.
+Product manager, Quoting squad (00:04:00): I will add the trigger and the eval timing to the PRD today.

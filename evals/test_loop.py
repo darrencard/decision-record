@@ -47,7 +47,10 @@ import render_html  # noqa: E402
 BET = "quote-drafting"
 AS_OF = "2026-07-27"
 STATUS_WORDS = re.compile(r"\b(landed|watch|stalled)\b", re.I)
-SAMPLE_OUTPUTS = ("decisions.md", "decision-record.html", "decision-record.md", "leader-report-decisions.md", f"landing/{BET}.json")
+SAMPLE_OUTPUTS = (
+    "decisions.md", "decision-record.html", "decision-record.md", "leader-report-decisions.md", f"landing/{BET}.json",
+    "later/decisions.md", "later/open-decisions.md",
+)  # fmt: skip
 
 
 def figures_in(obj, prefix=""):
@@ -112,6 +115,71 @@ class Sample(unittest.TestCase):
             for name in SAMPLE_OUTPUTS:
                 with self.subTest(name=name):
                     self.assertEqual((Path(tmp) / name).read_bytes(), (ACME / name).read_bytes(), f"{name} differs. Run python3 examples/acme/sample.py and commit.")
+
+
+class Story(unittest.TestCase):
+    """The Decide-step snapshot and the later read tell one story with the rest of the loop."""
+
+    def test_the_decide_snapshot_comes_before_spec_and_shows_both_calls_open(self):
+        rec = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))
+        self.assertEqual(rec["decisions"]["as_of"], AS_OF)
+        self.assertLess(rec["decisions"]["as_of"], "2026-08-03")  # 02 Spec reads on 2026-08-03
+        self.assertEqual([r["id"] for r in rec["decisions"]["rows"]], ["D-0004", "D-0005"])
+
+    def test_the_later_log_decides_the_trigger_before_release_and_the_tier_before_the_cost_read(self):
+        recs = {r.id: r for r in declog.parse_log((ACME / "later" / "decisions.md").read_text(encoding="utf-8"))}
+        self.assertEqual({r.status for r in recs.values()}, {"decided"})
+        trigger, tier = recs["D-0004"], recs["D-0005"]
+        self.assertEqual((trigger.decided_by, trigger.owner), ("Head of Product, Quoting squad", "Tech lead, Quoting squad"))
+        self.assertEqual(trigger.chosen, "Roll back when wrong-price quotes pass 2%")
+        self.assertTrue("2026-08-03" < trigger.date < "2026-09-05")  # after the spec hold, before the release read
+        self.assertLess(tier.date, "2026-11-15")  # before the cost read
+        self.assertEqual(tier.chosen, "vendor-a/m")
+        for r in (trigger, tier):
+            self.assertEqual(r.source, "Acme spec review call, 2026-08-10 (illustrative)")
+        self.assertEqual(declog.validate_log(list(recs.values()), date(2026, 11, 26)), [])
+        self.assertIn("No open decisions in the log.", (ACME / "later" / "open-decisions.md").read_text(encoding="utf-8"))
+
+    def test_the_readme_shows_the_later_read(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("--log examples/acme/later/decisions.md --as-of 2026-11-26", readme)
+
+    def test_past_due_means_a_passed_deadline_not_a_long_wait(self):
+        md = (ACME / "decision-record.md").read_text(encoding="utf-8")
+        self.assertIn("1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.", md)
+        self.assertNotIn("past due", md)  # D-0004's deadline, 2026-08-03, is still ahead on 2026-07-27
+        key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
+        late = json.loads(json.dumps(key))
+        late["as_of"] = "2026-08-04"
+        self.assertIn("2 past due: D-0004 was to be decided by 2026-08-03.", render_html.lede(late))
+
+
+class EntryScripts(unittest.TestCase):
+    def test_every_entry_script_checks_python_before_anything_else(self):
+        vendored = set(json.loads((SKILL / "VENDORED.json").read_text(encoding="utf-8"))["files"])
+        for path in sorted(SCRIPTS.glob("*.py")):
+            if f"scripts/{path.name}" in vendored or '__name__ == "__main__"' not in (text := path.read_text(encoding="utf-8")):
+                continue
+            with self.subTest(script=path.name):
+                check = text.find("sys.version_info < (3, 11)")
+                self.assertGreater(check, 0)
+                self.assertIn("try python3.12", text)
+                for io_call in ("read_text(", "write_text(", "open("):
+                    first = text.find(io_call, text.find('"""', 3) + 3)
+                    self.assertTrue(first == -1 or first > check, f"{path.name}: {io_call} before the version check")
+
+    def test_decide_rewrites_the_log_through_a_temp_file(self):
+        import record
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "decisions.md"
+            shutil.copy(ACME / "decisions.md", log)
+            args = ["decide", "D-0005", "--decided-by", "Tech lead, Quoting squad", "--date", "2026-08-10", "--evidence", "x", "--source-name", "Spec review"]
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = record.main([*args, "--as-of", "2026-11-26", "--log", str(log)])
+            self.assertEqual(code, 0)
+            self.assertEqual([p.name for p in Path(tmp).iterdir()], ["decisions.md"])
+            self.assertEqual(next(r for r in declog.parse_log(log.read_text(encoding="utf-8")) if r.id == "D-0005").source, "Spec review")
 
 
 class LoopRecord(Work):
@@ -196,8 +264,9 @@ class Figures(unittest.TestCase):
 
     def test_acme_figures_match_the_log(self):
         f = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]["figures"]
-        got = {k: f[k]["value"] for k in ("open", "decided", "past_due", "oldest_open", "usual_days_to_decide")}
-        self.assertEqual(got, {"open": 2, "decided": 3, "past_due": 1, "oldest_open": 14, "usual_days_to_decide": 7.0})
+        got = {k: f[k]["value"] for k in ("open", "decided", "waiting_long", "past_due", "oldest_open", "usual_days_to_decide")}
+        # D-0004 has waited 14 days against a usual 7, but its decide-by date (2026-08-03) is still ahead: not past due.
+        self.assertEqual(got, {"open": 2, "decided": 3, "waiting_long": 1, "past_due": 0, "oldest_open": 14, "usual_days_to_decide": 7.0})
 
 
 class StatusWords(unittest.TestCase):
@@ -284,6 +353,11 @@ class Page(unittest.TestCase):
 
     def test_illustrative_tag_is_visible(self):
         self.assertIn('<span class="ill">Illustrative</span>', self.body)
+
+    def test_selection_and_focus_ring_are_ink_not_green(self):
+        css = self.html[self.html.index("::selection{background:var(--t1)") :]
+        self.assertIn(":focus-visible{outline-color:var(--t1)}", css)
+        self.assertNotIn("var(--landed)", css)
 
     def test_no_status_colour_and_brass_only_for_a_persons_call(self):
         self.assertNotIn('class="st', self.body)

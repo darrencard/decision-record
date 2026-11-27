@@ -23,8 +23,11 @@ from typing import Any
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "vendor" / "template.html"
 STYLE = re.compile(r"<style>(.*?)</style>", re.S)
 
-# Layout for this page only. Everything else comes from the template's stylesheet.
+# Layout for this page only. Everything else comes from the template's stylesheet. The template paints
+# selection and the focus ring green, a status colour; this page sets both to ink.
 PAGE_CSS = """
+::selection{background:var(--t1);color:var(--bg)}
+:focus-visible{outline-color:var(--t1)}
 main.solo{margin-left:0}
 .solo .slide{min-height:0}
 .solo .slide.cover{padding-top:72px;padding-bottom:40px}
@@ -68,14 +71,20 @@ def plural(n: int, word: str) -> str:
 
 
 def lede(key: dict[str, Any]) -> str:
-    """'3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.'"""
+    """'3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.'
+
+    "Longer than usual" is against the log's usual time to decide. "Past due" is only a decide-by date that has passed."""
     f = key["figures"]
     out = f"{f['decided']['value']} decided, {f['open']['value']} open."
     late = [r for r in key["rows"] if f"days_waiting@{r['id']}" in f and "usual_days_to_decide" in f and r["days_waiting"] > f["usual_days_to_decide"]["value"]]
     if late:
         r = late[0]
         who = r["owner"] or "nobody named"
-        out += f" {len(late)} past due: {r['id']} has waited {plural(r['days_waiting'], 'day')} on {who}, against a usual {f['usual_days_to_decide']['value']:g}."
+        out += f" {len(late)} waiting longer than usual: {r['id']} has waited {plural(r['days_waiting'], 'day')} on {who}, against a usual {f['usual_days_to_decide']['value']:g}."
+    due = [r for r in key["rows"] if r["deadline"] and r["deadline"] < key["as_of"]]
+    if due:
+        r = due[0]
+        out += f" {len(due)} past due: {r['id']} was to be decided by {r['deadline']}."
     return out
 
 

@@ -2,7 +2,7 @@
 
 Read 2026-07-27 · decision-record 0.3.0 · Illustrative
 
-3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.
+3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.
 
 Next step: D-0004 waits on Lead, Quoting squad: set the rollback trigger for quote drafting by 2026-08-03.
 
@@ -12,7 +12,7 @@ Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief
 
 | ask | options | recommendation | deadline | owner | days_waiting | id | source |
 |---|---|---|---|---|---|---|---|
-| Set the rollback trigger for quote drafting | Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30% | Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, past the usual 7 days to decide. | 2026-08-03 | Lead, Quoting squad | 14 | D-0004 | Acme decide call, 2026-07-27 (illustrative) |
+| Set the rollback trigger for quote drafting | Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30% | Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, longer than the usual 7 days to decide. | 2026-08-03 | Lead, Quoting squad | 14 | D-0004 | Acme decide call, 2026-07-27 (illustrative) |
 | Choose the model tier for quote drafts | vendor-a/xl or vendor-a/m | Lead, Quoting squad, recommends vendor-a/m, to stay inside the 9,000 token budget. Waiting on Tech lead, Quoting squad, 7 days open. | 2026-08-03 | Tech lead, Quoting squad | 7 | D-0005 | Acme decide call, 2026-07-27 (illustrative) |
 
 ## Decided
@@ -41,7 +41,8 @@ Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief
 |---|---|---|---|
 | open | 2 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
 | decided | 3 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
-| past_due | 1 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
+| waiting_long | 1 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
+| past_due | 0 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); open with a decide-by date before as_of |
 | waiting_on_nobody | 0 decisions | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe) |
 | oldest_open | 14 days | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); as_of minus the opened date |
 | usual_days_to_decide | 7 days | 2026-07-13 to 2026-07-27 | decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); median days from opened to decided |

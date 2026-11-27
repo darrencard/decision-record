@@ -24,6 +24,9 @@ import json
 import sys
 from pathlib import Path
 
+if sys.version_info < (3, 11):  # noqa: UP036  (say so plainly on an old Python, before reading or writing anything)
+    sys.exit("decision-record needs Python 3.11 or later; try python3.12.")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import declog  # noqa: E402
@@ -45,13 +48,13 @@ def markdown(out: dict) -> str:
     if q["usual_days_to_decide"] is not None:
         lines += [f"Usual time to decide: {q['usual_days_to_decide']:g} days ({q['usual_basis']}).", ""]
     else:
-        lines += [f"Usual time to decide: not known ({q['usual_basis']}), so nothing is marked past due.", ""]
+        lines += [f"Usual time to decide: not known ({q['usual_basis']}), so nothing is marked as waiting longer than usual.", ""]
     if q["counts"]["escalated"]:
-        lines += [f"Escalate: past due by more than {q['escalate_after_days']} days with nobody named to make the call.", ""]
+        lines += [f"Escalate: waiting more than {q['escalate_after_days']} days longer than usual with nobody named to make the call.", ""]
     if q["items"]:
         lines += ["| Id | Decision needed | Days waiting | Waiting on | Flag |", "|---|---|---|---|---|"]
         for i in q["items"]:
-            flag = "escalate" if i["escalated"] else ("past due" if i["past_due"] else "")
+            flag = ", ".join(w for w, on in (("escalate", i["escalated"]), ("past due", i["past_due"]), ("longer than usual", i["waiting_long"] and not i["escalated"])) if on)
             days = "no date" if i["days_waiting"] is None else str(i["days_waiting"])
             lines.append(f"| {i['id']} | {i['title']} | {days} | {i['waiting_on'] or 'nobody named'} | {flag} |")
         lines.append("")
@@ -89,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--log", type=Path, required=True)
     p.add_argument("--as-of", required=True)
     p.add_argument("--usual-days", type=float, help="Days a decision should take. Default: the log's own median.")
-    p.add_argument("--escalate-after", type=int, default=14, help="Days past due, with nobody named, before a call escalates.")
+    p.add_argument("--escalate-after", type=int, default=14, help="Days longer than usual, with nobody named, before a call escalates.")
     p.add_argument("--json", action="store_true")
     p.add_argument(
         "--leader-report",

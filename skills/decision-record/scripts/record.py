@@ -19,6 +19,9 @@ import json
 import sys
 from pathlib import Path
 
+if sys.version_info < (3, 11):  # noqa: UP036  (say so plainly on an old Python, before reading or writing anything)
+    sys.exit("decision-record needs Python 3.11 or later; try python3.12.")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import declog  # noqa: E402
@@ -64,7 +67,10 @@ def as_of(s: str):
 
 
 def write_log(path: Path, records: list[declog.Record]) -> None:
-    path.write_text(declog.format_log(records), encoding="utf-8")
+    """Write the whole log to a temp file, then rename it over the old one, so a crash never loses a record."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(declog.format_log(records), encoding="utf-8")
+    tmp.replace(path)
 
 
 def cmd_check(a) -> int:
@@ -117,6 +123,8 @@ def cmd_decide(a) -> int:
         r.decided_by = declog.clean(a.decided_by)
         r.date = declog.clean(a.date)
         r.evidence = declog.clean(a.evidence)
+        if a.source_name:
+            r.source = declog.clean(a.source_name)
         if a.decision:
             r.decision = declog.clean(a.decision)
         if a.chosen:
@@ -230,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--date", required=True)
     s.add_argument("--evidence", required=True)
     s.add_argument("--source", type=Path)
+    s.add_argument("--source-name", help="Where the call was made, as the record cites it, for example 'Acme spec review call, 2026-08-10'.")
     s.add_argument("--decision")
     s.add_argument("--chosen")
     s.add_argument("--owner")

@@ -16,6 +16,9 @@ import re
 import sys
 from pathlib import Path
 
+if sys.version_info < (3, 11):  # noqa: UP036  (say so plainly on an old Python, before reading or writing anything)
+    sys.exit("decision-record needs Python 3.11 or later; try python3.12.")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import declog  # noqa: E402

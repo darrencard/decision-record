@@ -16,7 +16,7 @@ Everything runs locally. The scripts are Python 3.11 or later, standard library 
 ## The 3 rules that override everything else
 
 1. **No named decider, no decision.** A record is `decided` only when one named decider made the call and the source holds their words. A named decider is either one person's name ("Maya Ortiz", "Maya Ortiz (VP Product)") or one role scoped to one team, written exactly "<role>, <team or squad>" ("Head of Product, Quoting squad", "Lead, Quoting squad"). "The team", "we", "leadership", "TBD", a bare role ("Head of Engineering") or a role with its team in front and no comma ("Quoting squad lead") is not a decider. Use the scoped form the landing brief uses for "Decides the next step". If nobody made the call, log it as `open`, waiting on the person who has to make it. Say so to the user plainly.
-2. **Never do the arithmetic.** Days waiting, the usual time to decide, past due, escalation and the follow-through rate all come from `scripts/open_decisions.py`. Quote its output. Do not count days or work out a rate yourself.
+2. **Never do the arithmetic.** Days waiting, the usual time to decide, waiting longer than usual, past due, escalation and the follow-through rate all come from `scripts/open_decisions.py`. Quote its output. Do not count days or work out a rate yourself.
 3. **Never talk past the validator.** If `scripts/record.py` refuses a record, fix the record from the source or change its status. Do not reword the evidence to slip under a rule, invent a decider, or edit the log file by hand.
 
 If the user asks you to record something as decided when the source does not show who decided, say the log cannot hold it as decided, say what would allow it (the name of the person who made the call and where they said it), and offer to log it as open.
@@ -70,7 +70,7 @@ A thread with several decisions gets one draft and one append per decision. A th
 
 `python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD` prints both reads as Markdown (`--json` for the raw figures).
 
-- **Open decisions**, oldest first: days waiting, on whom, and a flag. A call is past due when it has waited longer than a decision usually takes in this log (the median days from opened to decided across its own records), or `--usual-days N` if the user sets a target. It escalates when it is past due by 14 more days (`--escalate-after`) and nobody is named to make it. A call with no opened date has no age: say so, never estimate one.
+- **Open decisions**, oldest first: days waiting, on whom, and a flag. A call is waiting longer than usual when it has waited longer than a decision usually takes in this log (the median days from opened to decided across its own records), or `--usual-days N` if the user sets a target. It is past due only when its decide-by date has passed; never call a long wait past due. It escalates when it has waited 14 days longer than usual (`--escalate-after`) and nobody is named to make it. A call with no opened date has no age: say so, never estimate one.
 - **Follow-through**: of the decisions whose outcome has been read, how many worked, are pending or missed, and the reviews that are due, each with its success signal and assumptions so the review tests what the call said it would do. A decision nobody has checked counts as not yet read, never as worked.
 - **Small numbers stay counts.** The usual time to decide needs 3 decided records with an opened date; the follow-through rate needs 5 outcomes read. Below that the script prints counts and says why there is no median or rate. Report it that way: do not work one out.
 
@@ -87,7 +87,7 @@ python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop F
 - With no record yet, add `--brief briefs/<bet>.md` to start one. The brief is read by the Leader Report's own parser (`scripts/landing_brief.py`, vendored byte-identical); a brief with any part missing is refused with every problem listed. Never write a brief parser or keyword list of your own.
 - A brief edited after the record opened (its sha256 changed), or an invalid log, is refused and nothing is written. Say so, and name the fix.
 - `rows` are the open decisions in the Leader Report's decision format, so its decision slide reads them unchanged. `decided` lists each call with the one person who made it. `brief.tested_by` names the decided record whose success signal is the brief's bar; if none does, it is listed under `gaps`. Without a `portfolio` key, that is a gap too: say "portfolio not read: run bet-portfolio-review first".
-- Every figure (open, decided, past due, oldest open, usual days to decide, days waiting and days to decide per record) carries value, unit, source, window and as_of, counted in code. Quote them; never work one out.
+- Every figure (open, decided, waiting longer than usual, past due, oldest open, usual days to decide, days waiting and days to decide per record) carries value, unit, source, window and as_of, counted in code. Quote them; never work one out.
 - The page uses brass only for a person's call: who decided, who a call waits on, the deadline. It has no status colour, and says open or decided, never a bet's status.
 
 Then hand on: the next step in the loop is 02 Spec, spec-auditor on the bet's spec.

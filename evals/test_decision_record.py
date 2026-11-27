@@ -316,29 +316,42 @@ class TestQueueAndFollowThrough(unittest.TestCase):
         self.assertIsNone(by["D-0008"]["waiting_on"])  # a role is not a person
         self.assertIsNone(by["D-0008"]["days_waiting"])
 
-    def test_past_due_and_escalation(self):
+    def test_waiting_long_and_escalation(self):
         by = {i["id"]: i for i in declog.open_queue(self.recs, AS_OF)["items"]}
-        self.assertFalse(by["D-0005"]["past_due"])  # 8 is not more than 8
-        self.assertTrue(by["D-0007"]["past_due"])
+        self.assertFalse(by["D-0005"]["waiting_long"])  # 8 is not more than 8
+        self.assertTrue(by["D-0007"]["waiting_long"])
         self.assertFalse(by["D-0007"]["escalated"])  # someone is named
         self.assertTrue(by["D-0006"]["escalated"])  # 29 > 8 + 14, nobody named
 
     def test_headline_drops_clauses_that_are_not_true(self):
         q = declog.open_queue(self.recs, AS_OF)
-        self.assertEqual(q["headline"], "4 open · oldest 29 days · 2 past due · 2 waiting on nobody named")
+        self.assertEqual(q["headline"], "4 open · oldest 29 days · 2 waiting longer than usual · 1 past due · 2 waiting on nobody named")
         fresh = [declog.Record(id="D-0001", title="x", status="open", opened="2026-11-26", waiting_on="Raj Mehta")]
         self.assertEqual(declog.open_queue(fresh, AS_OF)["headline"], "1 open · all opened today")
         self.assertEqual(declog.open_queue([], AS_OF)["headline"], "No open decisions in the log.")
 
-    def test_no_history_means_nothing_is_past_due(self):
+    def test_no_history_means_nothing_waits_longer_than_usual(self):
         only_open = [r for r in self.recs if r.status == "open"]
         q = declog.open_queue(only_open, AS_OF)
         self.assertIsNone(q["usual_days_to_decide"])
-        self.assertEqual(q["counts"]["past_due"], 0)
+        self.assertEqual(q["counts"]["waiting_long"], 0)
+        self.assertEqual(q["counts"]["past_due"], 1)  # a passed deadline needs no history
+
+    def test_past_due_only_when_the_deadline_has_passed(self):
+        by = {i["id"]: i for i in declog.open_queue(self.recs, AS_OF)["items"]}
+        self.assertTrue(by["D-0007"]["past_due"])  # decide by 2026-11-20, read 2026-11-26
+        self.assertFalse(by["D-0005"]["past_due"])  # decide by 2026-12-02, still ahead
+        self.assertFalse(by["D-0006"]["past_due"])  # waited longest, but no deadline to pass
+        self.assertTrue(by["D-0006"]["waiting_long"])
+        on_the_day = {i["id"]: i for i in declog.open_queue(self.recs, date(2026, 11, 20))["items"]}
+        self.assertFalse(on_the_day["D-0007"]["past_due"])  # the decide-by day itself is not past
+        self.assertIn("past due since 2026-11-20", by["D-0007"]["waiting_phrase"])
+        self.assertNotIn("past due", by["D-0006"]["waiting_phrase"])
 
     def test_usual_days_override(self):
         q = declog.open_queue(self.recs, AS_OF, expected_days=5)
-        self.assertEqual(q["counts"]["past_due"], 3)
+        self.assertEqual(q["counts"]["waiting_long"], 3)
+        self.assertEqual(q["counts"]["past_due"], 1)  # the usual days never move a deadline
         self.assertEqual(q["usual_basis"], "set by the user")
 
     def test_follow_through(self):
@@ -369,14 +382,15 @@ class TestQueueAndFollowThrough(unittest.TestCase):
         q = declog.open_queue(two, AS_OF)
         self.assertIsNone(q["usual_days_to_decide"])
         self.assertIn("3 are needed for a median", q["usual_basis"])
-        self.assertEqual(q["counts"]["past_due"], 0)
+        self.assertEqual(q["counts"]["waiting_long"], 0)
 
     def test_review_due_carries_what_to_test(self):
         due = declog.follow_through(self.recs, AS_OF)["review_due"][0]
         self.assertEqual(due["success_signal"], "Audit requests answered in under 1 day (illustrative)")
         code, out = run_cli(open_decisions.main, ["--log", str(FIX / "sample_log.md"), "--as-of", "2026-11-26"])
         self.assertIn("- Test against: Audit requests answered in under 1 day (illustrative)", out)
-        self.assertIn("Escalate: past due by more than 14 days with nobody named to make the call.", out)
+        self.assertIn("Escalate: waiting more than 14 days longer than usual with nobody named to make the call.", out)
+        self.assertIn("| D-0007 | Which squad owns the quote accuracy metric? | 13 | Lena Brandt | past due, longer than usual |", out)
 
     def test_follow_through_with_nothing_read_has_no_rate(self):
         self.assertIsNone(declog.follow_through([], AS_OF)["follow_through_rate_pct"])
@@ -560,7 +574,7 @@ class TestLeaderReportExport(unittest.TestCase):
         self.assertEqual(by["D-0005"]["owner"], "Raj Mehta")
         self.assertEqual(by["D-0005"]["recommendation"], "Sam Whitfield recommends the per-trade setting. Waiting on Raj Mehta, 8 days open.")
         self.assertEqual(by["D-0006"]["recommendation"], "No recommendation recorded. Nobody is named to make this call, 29 days open, escalated.")
-        self.assertIn("past the usual 8 days to decide", by["D-0007"]["recommendation"])
+        self.assertIn("longer than the usual 8 days to decide, past due since 2026-11-20.", by["D-0007"]["recommendation"])
         self.assertIsNone(by["D-0008"]["deadline"])
 
     def test_slide_line_parses_back_into_the_same_options(self):

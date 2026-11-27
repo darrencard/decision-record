@@ -81,7 +81,7 @@
       {
         "ask": "Set the rollback trigger for quote drafting",
         "options": "Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30%",
-        "recommendation": "Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, past the usual 7 days to decide.",
+        "recommendation": "Product manager, Quoting squad, recommends the wrong-price trigger at 2%. Waiting on Lead, Quoting squad, 14 days open, longer than the usual 7 days to decide.",
         "deadline": "2026-08-03",
         "owner": "Lead, Quoting squad",
         "days_waiting": 14,
@@ -179,10 +179,20 @@
         },
         "as_of": "2026-07-27"
       },
-      "past_due": {
+      "waiting_long": {
         "value": 1,
         "unit": "decisions",
         "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe)",
+        "window": {
+          "from": "2026-07-13",
+          "to": "2026-07-27"
+        },
+        "as_of": "2026-07-27"
+      },
+      "past_due": {
+        "value": 0,
+        "unit": "decisions",
+        "source": "decision-record 0.3.0: counted from decisions.md (sha256 a01557cce6fe); open with a decide-by date before as_of",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"

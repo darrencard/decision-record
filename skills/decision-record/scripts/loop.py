@@ -7,7 +7,7 @@ it was found. It reads no key later than its own in the record order.
 The `decisions` key carries the open decisions in the Product & Technology Leader Report's decision
 format (`columns` and `rows`), so the report's decision slide reads them unchanged. Every figure carries
 value, unit, source, window (from, to) and as_of, and is computed here from the decision log, never
-written by the model. The words it uses are a decision's own: open, decided, dropped, past due. The
+written by the model. The words it uses are a decision's own: open, decided, dropped, waiting longer than usual, past due. The
 bet's status words belong to did-it-land and never appear here.
 
 Standard library only. Python 3.11 or later.
@@ -121,7 +121,8 @@ def build(
     figures: dict[str, Any] = {
         "open": figure(q["counts"]["open"], "decisions", src, start, day, day),
         "decided": figure(sum(1 for r in records if r.status == "decided"), "decisions", src, start, day, day),
-        "past_due": figure(q["counts"]["past_due"], "decisions", src, start, day, day),
+        "waiting_long": figure(q["counts"]["waiting_long"], "decisions", src, start, day, day),
+        "past_due": figure(q["counts"]["past_due"], "decisions", f"{src}; open with a decide-by date before as_of", start, day, day),
         "waiting_on_nobody": figure(q["counts"]["waiting_on_nobody"], "decisions", src, start, day, day),
     }
     gaps: list[str] = []
@@ -132,7 +133,7 @@ def build(
         how = "set by the user" if usual_days is not None else "median days from opened to decided"
         figures["usual_days_to_decide"] = figure(q["usual_days_to_decide"], "days", f"{src}; {how}", start, day, day)
     else:
-        gaps.append(f"usual time to decide not known: {q['usual_basis']}, so nothing is marked past due")
+        gaps.append(f"usual time to decide not known: {q['usual_basis']}, so nothing is marked as waiting longer than usual")
     for i in q["items"]:
         if i["days_waiting"] is not None:
             figures[f"days_waiting@{i['id']}"] = figure(i["days_waiting"], "days", f"{src}; as_of minus the opened date", i["opened"], day, day)
@@ -166,7 +167,7 @@ def build(
         if r.status == "decided"
     ]
     if q["items"]:
-        first = next((i for i in q["items"] if i["past_due"]), q["items"][0])
+        first = next((i for i in q["items"] if i["past_due"]), next((i for i in q["items"] if i["waiting_long"]), q["items"][0]))
         row = next(x for x in rows if x["id"] == first["id"])
         who = first["waiting_on"]
         ask = first["title"].rstrip(".")
