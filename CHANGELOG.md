@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2, 2026-11-27
+
+- The page's picture is now scorecard rows in the grammar of the outcome scorecard on dacard.ai/update, not a scaled timeline: one row per decision with its name, the plan (the log's usual 14 days, printed once in the frame head as "PLAN 14 DAYS") in grey above the days it took in ink, both scaled to the longest, the part past the plan hatched, `28 DAYS` right-aligned, and who decided in brass text with a small person mark. Open calls print OPEN and who they wait on. Labels and figures are Geist Mono 12px and names Geist 14px as rendered; no text sits inside an SVG and no picture scales.
+- The next step and the figures at a glance sit side by side under the rows. "Longer than usual" on a call prints as text, not a boxed chip.
+- The Markdown twin gains a "Days to decide" table in the same shape: decision, days with the overage past plan, decided by.
+- Plain words in the README and SKILL.md: project for bet, target for bar, the project file for the loop's record. SKILL.md tells Claude to use the user's own word if they say bet.
+- svgkit 1.1.0, vendored byte-identical from landing-loop 0210218 and pinned in `VENDORED.json`. Tests: no text inside an SVG, no picture with a viewBox, label sizes only 12 or 14px in the CSS, no box inside the frame, one row per decision with its days and decider, the plan printed once, overage hatched on exactly the two slow calls, and open calls show who they wait on.
+
 ## 0.3.1, 2026-11-27
 
 - The HTML page follows the Landing Loop sample anatomy, built like did-it-land's and eval-kit's: the shared header (mark, DACARD, skill, date, version, blue Illustrative tag), the verdict as the heading ("All five decisions are made; none is open. Two took longer than usual to decide."), the signature picture, one next step with its person in brass and when it is due, then each call in two columns and what the record read. The evidence ledger and an engineers' fold (key names, sources, the log's hash, model ids) are folded, and so is each decider's exact wording. No call to action: the page is the skill's own output.

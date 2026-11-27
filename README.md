@@ -12,7 +12,7 @@ Install the decision-record skill: run /plugin marketplace add darrencard/landin
 
 **Why it matters:** most teams lose decisions in threads. Weeks later nobody can say who decided, what was turned down, or what result the call was meant to bring.
 
-**Where it sits:** step 01 (Decide) of the Landing Loop. It reads the bet's landing brief and the `portfolio` key bet-portfolio-review wrote, writes only its `decisions` key in `landing/<bet>.json`, and feeds the Leader Report's decision slide unchanged.
+**Where it sits:** step 01 (Decide) of the Landing Loop. It reads the project's landing brief and the `portfolio` key bet-portfolio-review wrote, writes only its `decisions` key in `landing/<bet>.json`, and feeds the Leader Report's decision slide unchanged.
 
 **How it works:** Python checks every record against the source before it is written. The decider's words must be in the source, word for word, on the date the record gives. A decider is one person's name ("Maya Ortiz") or one role scoped to one team, written "<role>, <team or squad>" ("Head of Product, Quoting squad"). A group or a bare role ("the team", "Head of Engineering", "TBD") is not a decider, so the call is logged as open, waiting on a named person. Code computes every count and age. The model never does the maths.
 
@@ -24,7 +24,9 @@ Acme is invented: invoicing software for trades businesses. Every person, figure
 python3 examples/acme/sample.py
 ```
 
-It reads Acme's decide call of 2026-07-27 and spec review call of 2026-08-10 ([sources/](examples/acme/sources)), checks five draft records and two later calls against them, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json), read as of 2026-11-26. It starts from the landing-loop record filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
+It reads Acme's decide call of 2026-07-27 and spec review call of 2026-08-10 ([sources/](examples/acme/sources)), checks five draft records and two later calls against them, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json), read as of 2026-11-26. It starts from the project file filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
+
+The page opens with the days each decision took, as scorecard rows: the decision, the plan (the log's usual 14 days, printed once in the head) above the days it took, the part past the plan hatched, `28 DAYS`, and who decided in brass.
 
 ```text
 5 decided, 0 open. 2 took longer than the usual 14 days to decide: D-0004 (28 days), D-0005 (21 days).
@@ -59,10 +61,10 @@ Standalone: clone this repository and copy `skills/decision-record` into `~/.cla
 
 | | |
 |---|---|
-| Reads | The source: a Slack thread or Linear comments through `from_thread.py` (live first), or a CSV or pasted text as the fallback. The bet's landing brief, through the Leader Report's own parser. The `portfolio` key, if bet-portfolio-review wrote it. |
+| Reads | The source: a Slack thread or Linear comments through `from_thread.py` (live first), or a CSV or pasted text as the fallback. The project's landing brief, through the Leader Report's own parser. The `portfolio` key, if bet-portfolio-review wrote it. |
 | Writes | `decisions.md`, an append-only log your team can diff. The `decisions` key of `landing/<bet>.json`, and nothing else in it. One HTML page in the Leader Report style and the Landing Loop's one visual family (a timeline of each call, raised to decided), and its Markdown twin. |
 
-Your own bet, once the records are in the log:
+Your own project, once the records are in the log:
 
 ```bash
 python3 skills/decision-record/scripts/open_decisions.py --log decisions.md --as-of 2026-11-26 \
@@ -75,7 +77,7 @@ Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report'
 
 ```json
 "decisions": {
-  "tool": "decision-record 0.3.1",
+  "tool": "decision-record 0.3.2",
   "as_of": "2026-11-26",
   "reads": {"brief": true, "portfolio": true},
   "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
@@ -84,13 +86,13 @@ Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report'
                "decided_by": "Head of Product, Quoting squad", "date": "2026-08-10", "owner": "Tech lead, Quoting squad",
                "source": "Acme spec review call, 2026-08-10 (illustrative)"}],
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
-  "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
-              "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
+  "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
+              "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.2: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
   "next_step": "No open decisions on this project."
 }
 ```
 
-Its words are a decision's own: open, decided, dropped, waiting longer than usual (against the log's own median time to decide), past due (only when the decide-by date has passed). A decision's outcome, read later, is worked, pending or missed. A bet's status belongs to did-it-land alone.
+Its words are a decision's own: open, decided, dropped, waiting longer than usual (against the log's own median time to decide), past due (only when the decide-by date has passed). A decision's outcome, read later, is worked, pending or missed. A project's status belongs to did-it-land alone.
 
 ## What you get
 
@@ -99,7 +101,7 @@ Its words are a decision's own: open, decided, dropped, waiting longer than usua
 | Named decider rule | No decision in the log that nobody owns: a person's name, or a role scoped to its team ("Lead, Quoting squad") |
 | Evidence check | Every record traces back to the moment, and the words, of the call |
 | Open decisions | The stuck calls and the people they wait on, oldest first: waiting longer than the log's own median time to decide, and past due once the decide-by date has passed |
-| Success signal | Each call names the result that would show it worked; the bet's own call names the brief's bar |
+| Success signal | Each call names the result that would show it worked; the project's own call names the brief's target |
 | Leader Report feed | The board deck shows the same calls, owners and deadlines as the log |
 | Append-only log, ADR export, CI check | `record.py validate` blocks a hand-edited record in review; `record.py adr` writes `docs/adr/` |
 
@@ -115,6 +117,6 @@ Its words are a decision's own: open, decided, dropped, waiting longer than usua
 - [SKILL.md](skills/decision-record/SKILL.md): the workflow and every rule the validator enforces.
 - [references/log-format.md](skills/decision-record/references/log-format.md): the log format.
 
-Version 0.3.1. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).
+Version 0.3.2. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).
 
 Claude and Claude Code are trademarks of Anthropic, PBC. These skills are independent and not affiliated with or endorsed by Anthropic.

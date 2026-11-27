@@ -5,13 +5,17 @@ The page takes the report's whole stylesheet from its template (assets/vendor/te
 at a pinned commit) and draws its picture with svgkit (scripts/vendor/svgkit.py, vendored byte-identical from
 landing-loop). Only a few rules for this page's layout are added.
 
-It reads top down for someone who has never seen the loop: the shared header, the verdict as the heading, a timeline
-with one row per decision from the day it was raised to the day a named person made it, then one thing to do next.
+It reads top down for someone who has never seen the loop: the shared header, the verdict as the heading, the days
+each decision took as scorecard rows (name, plan and actual bars, `28 DAYS`, the decider in brass), then one thing
+to do next. The rows follow the scorecard grammar (svgkit 1.1.0): HTML rows split by hairlines, Geist Mono 12px for
+labels and figures, Geist 14px for names, fixed-height bars with no text in them. The plan is the log's usual time
+to decide, printed once in the frame head ("PLAN 14 DAYS"); the part of a bar past it is hatched, because hatching
+means over plan and nothing else.
 Each call follows in two columns, then what the record read. The evidence ledger and the engineering detail (key
 names, the log's hash, model ids, the decider's exact words) sit in folds. Public copy uses plain words: project,
 target, landing brief (defined at first use), when you would undo it, the large model.
 
-Colour means one thing each: brass for a person's call (who decided, who a call waits on), grey for the record's own
+Colour means one thing each: brass for a person's call (who decided, who a call waits on), grey for the plan and the record's own
 marks. There is no status colour on this page: a decision is open or decided, and the project's status words belong
 to did-it-land. The picture draws only figures the page prints, and its aria-label states the answer.
 
@@ -50,7 +54,7 @@ main.solo{margin-left:0}
 .solo h1{font-size:clamp(34px,4.6vw,60px);line-height:1;letter-spacing:-.04em;max-width:22ch;margin-bottom:20px}
 .solo .lede{margin-bottom:28px}
 .solo .lede b{color:var(--t1);font-weight:500}
-.cols{display:grid;grid-template-columns:minmax(0,640px) minmax(260px,1fr);gap:28px 48px;align-items:start}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px 48px;align-items:start;margin-top:32px}
 .side{display:grid;gap:24px}
 .next{display:grid;gap:10px;border:1px solid var(--brass);border-radius:12px;padding:20px 22px;background:var(--brass-bg)}
 .next>b{font:400 11px/16px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--brass)}
@@ -71,7 +75,7 @@ main.solo{margin-left:0}
 .call h3 .rk{display:block;font:400 11px/16px var(--mono);letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
 .call .figs>div:first-child{border-top:0}
 .call details{margin-top:4px}
-.chip.flag{color:var(--t1);border-color:var(--t1);margin-left:8px}
+.flag{font:400 12px/16px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--t1);margin-left:8px}
 .ask{font:600 21px/1.25 var(--display);letter-spacing:-.02em;color:var(--t1);margin:28px 0 6px}
 .ask:first-of-type{margin-top:0}
 .rec{color:var(--t2);font-size:13.5px;margin:0}
@@ -302,6 +306,8 @@ def spans(key: dict[str, Any]) -> list[dict[str, Any]]:
                 {
                     "id": d["id"],
                     "what": plain(d["chosen"] or d["title"]),
+                    "title": plain(d["title"]),
+                    "who": d["decided_by"],
                     "from": fig["window"]["from"],
                     "to": fig["window"]["to"],
                     "days": fig["value"],
@@ -316,6 +322,8 @@ def spans(key: dict[str, Any]) -> list[dict[str, Any]]:
                 {
                     "id": r["id"],
                     "what": plain(r["ask"]),
+                    "title": plain(r["ask"]),
+                    "who": r["owner"] or "nobody named",
                     "from": fig["window"]["from"],
                     "to": fig["window"]["to"],
                     "days": fig["value"],
@@ -326,62 +334,29 @@ def spans(key: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
-def _wrap(text: str, chars: int) -> list[str]:
-    lines: list[str] = []
-    for word in text.split():
-        if lines and len(lines[-1]) + 1 + len(word) <= chars:
-            lines[-1] += " " + word
-        else:
-            lines.append(word)
-    return lines or [""]
-
-
-def timeline(key: dict[str, Any], variant: str) -> str:
-    wide = variant == "wide"
-    width = 640.0 if wide else float(sk.TALL)
+def days_rows(key: dict[str, Any]) -> str:
+    """One row per decision: its name, the plan (the usual days) above the days it took, `28 DAYS`, and the person in
+    brass. Bars share one scale, the longest row; the part past the plan is hatched."""
     rows = spans(key)
-    start, end = min(_day(s["from"]) for s in rows), max(_day(s["to"]) for s in rows)
-    x = sk.scale((start, end), (8, width - 10))
-    flag = "Longer than usual"
-    parts, y = [], 16.0
-    for s in rows:
-        days = f"{plural(s['days'], 'day')}{' waiting' if s['open'] else ''}"
-        right = width
-        parts.append(sk.label(right, y, days, anchor="end", tone=sk.INK if s["slow"] else sk.MUTED))
-        right -= sk.label_width(days) + 10
-        if s["slow"]:
-            right -= sk.chip_width(flag)
-            parts.append(sk.chip(right, y - 13, flag, tone=sk.INK))
-            right -= 10
-        parts.append(sk.label(0, y, s["id"], tone=sk.MUTED))
-        if wide:
-            room = int((right - 64) / sk.label_width("x"))
-            lines = _wrap(s["what"].upper(), room)[:1] if room > 8 else []
-            if lines:
-                text = lines[0] if len(lines[0]) == len(s["what"]) else lines[0] + "..."
-                parts.append(sk.label(64, y, text, tone=sk.INK))
-            y += 16
-        else:
-            for line in _wrap(s["what"].upper(), int(width / sk.label_width("x"))):
-                y += 16
-                parts.append(sk.label(0, y, line, tone=sk.INK))
-            y += 16
-        x1, x2 = x(_day(s["from"])), x(_day(s["to"]))
-        if s["open"]:
-            parts.append(sk.rule(x1, y, x2, y, tone=sk.INK, width=sk.STROKE, dashed=True))
-            parts.append(sk.hollow(x1, y, r=3.5, tone=sk.INK2) + sk.hollow(x2, y, r=5, tone=sk.BRASS))
-        else:
-            tone = sk.INK if s["slow"] else sk.INK2
-            parts.append(sk.rule(x1, y, x2, y, tone=tone, width=2.5 if s["slow"] else sk.STROKE))
-            parts.append(sk.hollow(x1, y, r=3.5, tone=tone))
-            parts.append(sk.person(x2, y + 7, size=15))
-        y += 30
-    axis = y - 8
-    parts.append(sk.rule(0, axis, width, axis))
-    first, last = dt.date.fromordinal(start).isoformat(), dt.date.fromordinal(end).isoformat()
-    parts.append(sk.label(0, axis + 18, first))
-    parts.append(sk.label(width, axis + 18, last, anchor="end"))
-    return sk.frame("".join(parts), label=timeline_label(key, rows), height=axis + 24, width=width, variant=variant)
+    u = usual(key)
+    top = max([s["days"] for s in rows] + [u or 0])
+    out = []
+    for i, s in enumerate(rows, start=1):
+        picture = sk.paired_bars(u, s["days"], top=top, hatch_id=f"dr-over-{i}") if u is not None else sk.share_bar(s["days"], top)
+        days = f"{plural(s['days'], 'day').upper()}{' WAITING' if s['open'] else ''}"
+        word = (sk.check_word("open", ink=True) if s["open"] else "") + sk.person_call(s["who"])
+        out.append(sk.sc_row(s["title"], picture=picture, figure=sk.figure_line(days), word=word))
+    plan = f"plan {u:g} days" if u is not None else "days"
+    key_ = sk.legend("plan", plan) + sk.legend("actual", "took") + sk.legend("over", "over plan") if u is not None else ""
+    return sk.sc_frame(
+        out,
+        label=timeline_label(key, rows),
+        title="Days to decide",
+        head=["Decision", "", "Days", "Decided by" if not key["rows"] else "Decided by or waiting on"],
+        legend=key_,
+        caption=caption(key),
+        illustrative=bool(key.get("illustrative")),
+    )
 
 
 def timeline_label(key: dict[str, Any], rows: list[dict[str, Any]]) -> str:
@@ -400,11 +375,11 @@ def timeline_label(key: dict[str, Any], rows: list[dict[str, Any]]) -> str:
 
 def caption(key: dict[str, Any]) -> str:
     u = usual(key)
-    out = "Each row is one decision, from the day it was raised (open circle) to the day a named person made it (the brass figure)."
+    out = "Each row is one decision, from the day it was raised to the day a named person made it."
     if u is not None:
-        out += f" A heavy row took longer than the usual {u:g} days, the median for this log."
+        out += f" Grey is the plan, {u:g} days, the median for this log; ink is the days it took; the part past the plan is hatched."
     if key["rows"]:
-        out += " A dashed row is still open, waiting on the person named."
+        out += " An open row is still waiting on the person named."
     return out
 
 
@@ -444,7 +419,7 @@ def open_block(r: dict[str, Any], fig: dict[str, Any] | None) -> str:
 
 def call_card(key: dict[str, Any], d: dict[str, Any]) -> str:
     slow = any(i == d["id"] for i, _ in slow_calls(key))
-    flag = '<span class="chip flag">Longer than usual</span>' if slow else ""
+    flag = '<span class="flag">Longer than usual</span>' if slow else ""
     rows = [
         ("Chosen", e(plain(d["chosen"] or "as written"))),
         ("Decided by", f'<span class="who">{e(d["decided_by"])}</span> on {e(d["date"])}{e(took(key, d))}{flag}'),
@@ -512,11 +487,10 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
         f"The project is tested against its <b>landing brief</b>, a one-page plan: what good looks like, by when, at what cost. "
         f"Here the target is {e(b['metric'].lower())} at {e(b['bar'])} or {e(b['better'])} by {e(b['by'])}."
     )
-    rows = spans(key)
-    pic = sk.figure(timeline(key, "wide"), timeline(key, "tall"), caption=caption(key), illustrative=bool(key.get("illustrative"))) if rows else ""
+    pic = days_rows(key) if spans(key) else ""
     cover = (
         f'<section class="slide cover">{header}<h1>{e(verdict(key))}</h1><p class="lede">{lede_html}</p>'
-        f'<div class="cols"><div>{pic}</div><div class="side">{next_box(key)}{glance(key)}</div></div></section>'
+        f'{pic}<div class="cols">{next_box(key)}{glance(key)}</div></section>'
     )
     opens = ""
     if key["rows"]:
@@ -528,7 +502,7 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     detail = f'<section class="slide"><div class="meta"><span>Detail</span></div>{ledger(key)}{engineers(key, record)}</section>'
     return (
         '<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        f'<title>{e(title)}</title><style>{floor_fonts(stylesheet() + sk.CSS + PAGE_CSS)}</style></head><body><main class="solo">'
+        f'<title>{e(title)}</title><style>{floor_fonts(stylesheet() + sk.CSS + sk.SCORECARD_CSS + PAGE_CSS)}</style></head><body><main class="solo">'
         f"{cover}{opens}{decided}{read}{detail}"
         '<p class="foot">Every figure is counted in code from the decision log, and every decider\'s words are checked against the source word for word. '
         "A decision is open or decided. Whether the project met its target is did-it-land's call, later in the loop.</p></main></body></html>\n"
@@ -541,6 +515,16 @@ def markdown(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     out += [f"**{verdict(key)}**", "", lede(key), ""]
     step, who, role, when = next_step(key)
     out += ["## What to do next", "", f"{step} {role}: {who}. When: {when}.", ""]
+    rows = spans(key)
+    if rows:
+        u = usual(key)
+        plan = f" · PLAN {u:g} DAYS" if u is not None else ""
+        out += ["## Days to decide", "", f"| Decision | Days{plan} | Decided by or waiting on |", "|---|---|---|"]
+        for r in rows:
+            over = f", {r['days'] - u:g} over plan" if u is not None and r["days"] > u else ""
+            days = f"**{plural(r['days'], 'day').upper()}{' WAITING' if r['open'] else ''}**{over}"
+            out.append(f"| {r['title']} | {days} | {'open, waiting on ' if r['open'] else ''}{r['who']} |")
+        out.append("")
     if key["rows"]:
         out += [
             "## Open, waiting on a named person",

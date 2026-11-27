@@ -1,6 +1,6 @@
 {
   "name": "decision-record",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Turns a thread, meeting notes or a transcript into a decision record, appends it to a decisions log, and lists open decisions with days waiting and on whom. Nothing is marked decided without a named decider and their words from the source. Step 01 of the Landing Loop: reads the landing brief and the portfolio key, writes the decisions key of landing/<bet>.json in the Leader Report's decision format, and renders one HTML page.",
   "author": {
     "name": "Dacard"

@@ -4,7 +4,7 @@ description: Turns a Slack thread, meeting notes or a call transcript into a dec
 license: MIT. See LICENSE in the repository root.
 metadata:
   author: Dacard
-  version: "0.3.1"
+  version: "0.3.2"
 ---
 
 # Decision record
@@ -12,6 +12,8 @@ metadata:
 Writes one record per decision into a decisions log the team can read and diff, and reads that log back: what is still waiting, on whom, for how long, and whether past calls followed through.
 
 Everything runs locally. The scripts are Python 3.11 or later, standard library only, and make no network calls.
+
+Words: say project, target and the landing brief (a one-page plan: what good looks like, by when, at what cost). If the user calls a project a bet, use their word.
 
 ## The 3 rules that override everything else
 
@@ -74,11 +76,11 @@ A thread with several decisions gets one draft and one append per decision. A th
 - **Follow-through**: of the decisions whose outcome has been read, how many worked, are pending or missed, and the reviews that are due, each with its success signal and assumptions so the review tests what the call said it would do. A decision nobody has checked counts as not yet read, never as worked.
 - **Small numbers stay counts.** The usual time to decide needs 3 decided records with an opened date; the follow-through rate needs 5 outcomes read. Below that the script prints counts and says why there is no median or rate. Report it that way: do not work one out.
 
-Lead with the headline line the script prints. Then name each past-due or escalated call and the person it waits on. Use only the words worked, pending and missed for a decision's outcome. Landed, watch and stalled are a bet's status: only did-it-land sets them, and this skill never uses them.
+Lead with the headline line the script prints. Then name each past-due or escalated call and the person it waits on. Use only the words worked, pending and missed for a decision's outcome. Landed, watch and stalled are a project's status: only did-it-land sets them, and this skill never uses them.
 
 ## Landing Loop: write the decisions key (step 01, Decide)
 
-The loop keeps one record per bet, `landing/<bet>.json`. This skill reads the bet's landing brief and the `portfolio` key (bet-portfolio-review's), and writes only the `decisions` key. It reads no key later in the record order (portfolio, decisions, spec, release, cost, evals, landed, signals, postmortem, board_qa), and keeps every other key exactly as it found it.
+The loop keeps one project file per project, `landing/<bet>.json`. This skill reads the project's landing brief and the `portfolio` key (bet-portfolio-review's), and writes only the `decisions` key. It reads no key later in the record order (portfolio, decisions, spec, release, cost, evals, landed, signals, postmortem, board_qa), and keeps every other key exactly as it found it.
 
 ```bash
 python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop FOLDER --bet SLUG --html decisions.html --md decisions-read.md
@@ -90,7 +92,7 @@ python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop F
 - Every figure (open, decided, waiting longer than usual, past due, oldest open, usual days to decide, days waiting and days to decide per record) carries value, unit, source, window and as_of, counted in code. Quote them; never work one out.
 - The page follows the Landing Loop sample anatomy: the verdict as its heading, a timeline with one row per decision from the day it was raised to the day a named person made it (rows longer than usual drawn heavy and tagged), one next step with its person in brass, then each call in two columns. The evidence ledger, key names and each decider's exact words fold. Public copy uses plain words (project, target, when to undo it, the large model). Brass marks only a person's call. It has no status colour, and says open or decided, never a project's status.
 
-Then hand on: the next step in the loop is 02 Spec, spec-auditor on the bet's spec.
+Then hand on: the next step in the loop is 02 Spec, spec-auditor on the project's spec.
 
 ## Feed the Leader Report's decision slide
 

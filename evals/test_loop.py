@@ -393,10 +393,14 @@ class Page(unittest.TestCase):
         self.assertNotIn("var(--stalled)", self.body)
         brass = re.findall(r'<span class="who">([^<]*)</span>', self.body)
         self.assertEqual(set(brass), {"Head of Product, Quoting squad", "Tech lead, Quoting squad"})
-        # Brass paints the brand mark's bar and one person figure per decided call in each variant of the picture.
-        figures = sum(svg.count("var(--brass)") for svg in svgkit.visuals_in(self.body))
-        self.assertEqual(figures, 2 * 2 * 5)
-        self.assertEqual(self.body.count("var(--brass)"), 1 + figures)
+        # Brass paints the brand mark's bar in the body; the person marks take it from the stylesheet, one per decision.
+        self.assertEqual(self.body.count("var(--brass)"), 1)
+        frame = svgkit.frames_in(self.html)[0]
+        self.assertEqual(frame.count('<span class="sc-o">'), 5)
+        css = self.html.split("<style>", 1)[1].split("</style>", 1)[0]
+        for sel in __import__("re").findall(r"([^{}]+)\{[^{}]*var\(--brass\)", svgkit.SCORECARD_CSS):
+            self.assertRegex(sel.strip(), r"\.sc-(o|pm)\b")
+        self.assertIn(".scg .sc-o{", css)
 
     def test_the_page_follows_the_sample_anatomy(self):
         body = self.body.split('<main class="solo">', 1)[1]
@@ -408,37 +412,51 @@ class Page(unittest.TestCase):
         self.assertIn('<span class="o"><i>Decides</i>Head of Product, Quoting squad</span><span class="d"><i>When</i>was due 2026-11-15</span>', body)
         self.assertNotIn("Book a call", body, "a sample is the skill's own output: no call to action")
 
-    def test_the_visual_draws_only_figures_the_page_prints(self):
-        self.assertEqual(len(svgkit.visuals_in(self.html)), 2, "the timeline, wide and tall")
+    def test_the_rows_print_each_decision_its_days_and_who_made_it(self):
         self.assertEqual(svgkit.unprinted(self.html), [])
         key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
-        for svg in svgkit.visuals_in(self.html):
-            drawn = svgkit.texts_in(svg)
-            for d in key["decided"]:
-                self.assertIn(d["id"], drawn)
-                days = key["figures"]["days_to_decide@" + d["id"]]["value"]
-                self.assertIn(f"{days} DAYS", drawn)
-            self.assertEqual(drawn.count("LONGER THAN USUAL"), 2)
+        frames = svgkit.frames_in(self.html)
+        self.assertEqual(len(frames), 1)
+        frame = frames[0]
+        self.assertEqual(frame.count('<div class="sc-r">'), len(key["decided"]))
+        for d in key["decided"]:
+            days = key["figures"]["days_to_decide@" + d["id"]]["value"]
+            self.assertIn(f'<span class="sc-l"><b>{days} DAYS</b></span>', frame)
+            self.assertIn(f"{render_html.e(d['decided_by'])}</span>", frame)
+        # The plan is printed once, in the frame head; the part past it is hatched on exactly the two slow calls.
+        self.assertEqual(frame.count("plan 14 days"), 1)
+        self.assertEqual(frame.count('class="ov"'), 2)
+        self.assertEqual(frame.count('<span class="sc-k"><i class="k-o"></i>over plan</span>'), 1)
 
-    def test_the_visual_draws_open_calls_dashed_with_no_person(self):
+    def test_the_scorecard_is_rows_with_no_text_inside_a_picture(self):
+        css = self.html.split("<style>", 1)[1].split("</style>", 1)[0]
+        self.assertEqual(svgkit.svgs_with_text(self.html), [], "text inside an SVG")
+        self.assertEqual(svgkit.scaled_svgs_in(self.html), [], "a picture with a viewBox would scale")
+        self.assertEqual(set(svgkit.font_sizes(css)), {"var(--sc-m)", "var(--sc-n)"})
+        self.assertIn("--sc-m:calc(12px / var(--sc-z))", css)
+        self.assertIn("--sc-n:calc(14px / var(--sc-z))", css)
+        self.assertEqual(svgkit.boxes_in_frames(self.html, css), [], "a box inside the frame")
+        self.assertNotIn("position:absolute", svgkit.SCORECARD_CSS)
+        self.assertNotIn('class="chip', self.body, "words print as text, never boxed chips")
+
+    def test_open_calls_show_open_and_who_they_wait_on(self):
         records = declog.parse_log((ACME / "decide-step" / "decisions.md").read_text(encoding="utf-8"))
         key = loop.build(records, date.fromisoformat(DECIDE_STEP), {"path": "decisions.md", "sha256": "0" * 64}, landing_brief_for_acme(), None)
         out = render_html.page(key, {}, "T")
         self.assertEqual(svgkit.unprinted(out), [])
-        wide = svgkit.visuals_in(out)[0]
-        self.assertEqual(wide.count('stroke-dasharray="4 3"'), 2)
-        self.assertEqual(wide.count('<path d="M'), 3, "a person figure for each of the three decided calls only")
+        frame = svgkit.frames_in(out)[0]
+        self.assertEqual(frame.count('<span class="sc-w ink">open</span>'), 2)
+        self.assertEqual(frame.count('<span class="sc-o">'), 5, "one person per row: who decided, or who it waits on")
+        self.assertIn("DAYS WAITING", frame)
         self.assertIn("<h1>Two of five decisions are still open. D-0004 has waited longer than usual on Lead, Quoting squad.</h1>", out)
         self.assertIn("<p>Decide D-0004: set when to undo quote drafting.</p>", out)
 
     def test_each_visual_states_its_answer(self):
         labels = re.findall(r'role="img" aria-label="([^"]+)"', self.html)
-        self.assertEqual(len(labels), 2)
-        for label in labels:
-            self.assertEqual(
-                label,
-                "Five decisions from the day each was raised to the day a named person made it; D-0004 took 28 days and D-0005 took 21 days, longer than the usual 14.",
-            )
+        self.assertEqual(
+            labels,
+            ["Five decisions from the day each was raised to the day a named person made it; D-0004 took 28 days and D-0005 took 21 days, longer than the usual 14."],
+        )
 
     def test_public_copy_uses_plain_words(self):
         public = re.sub(r"<details>.*?</details>", " ", self.body.split("Evidence ledger", 1)[0], flags=re.S)
@@ -483,7 +501,7 @@ class Page(unittest.TestCase):
 
     def test_svgkit_matches_its_landing_loop_pin(self):
         pin = json.loads((SKILL / "VENDORED.json").read_text(encoding="utf-8"))["landing-loop"]
-        self.assertEqual(pin["commit"], "5d01756d08ab3eb92b457c3286729791df6bcf5f")
+        self.assertEqual(pin["commit"], "02102183acd0cfb48775363483853c0aa8d07c15")
         self.assertEqual(set(pin["files"]), {"scripts/vendor/svgkit.py"})
         for rel, info in pin["files"].items():
             digest = hashlib.sha256((SKILL / rel).read_bytes()).hexdigest()
