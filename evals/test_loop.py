@@ -168,7 +168,8 @@ class Story(unittest.TestCase):
         early = loop.build(records, date.fromisoformat(DECIDE_STEP), {"path": "decisions.md", "sha256": "0" * 64}, landing_brief_for_acme(), None)
         self.assertEqual(
             render_html.lede(early),
-            "3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7. 1 took longer than the usual 7 days to decide: D-0002 (14 days).",
+            "3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7. "
+            "1 took longer than the usual 7 days to decide: D-0002 (14 days).",
         )
 
 
