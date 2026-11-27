@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import declog  # noqa: E402
 import landing_brief  # noqa: E402
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 TOOL = f"decision-record {VERSION}"
 NEXT_IN_LOOP = "Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts."
 SCHEMA = "landing-loop/1"

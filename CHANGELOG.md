@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1, 2026-11-27
+
+- The HTML page follows the Landing Loop sample anatomy, built like did-it-land's and eval-kit's: the shared header (mark, DACARD, skill, date, version, blue Illustrative tag), the verdict as the heading ("All five decisions are made; none is open. Two took longer than usual to decide."), the signature picture, one next step with its person in brass and when it is due, then each call in two columns and what the record read. The evidence ledger and an engineers' fold (key names, sources, the log's hash, model ids) are folded, and so is each decider's exact wording. No call to action: the page is the skill's own output.
+- The signature picture: one timeline row per decision, from the day it was raised (open circle) to the day a named person made it (a brass figure). Rows that took longer than the log's usual time are drawn heavy and tagged "Longer than usual"; open calls are dashed. A 640 wide variant beside the next step on desktop and a 340 wide one for phones; its aria-label states the answer. Drawn with svgkit, vendored byte-identical from landing-loop 5d01756 and pinned in `VENDORED.json` under `landing-loop`.
+- With nothing open, the next step is the next review: "Review all five decisions against their success signals", for the person the landing brief names, with the review date.
+- Plain words in the page and the Markdown twin: project, target, when to undo it, the mid-size and large model, AI usage per task, can be undone. The log, the record key and each decider's quoted words are unchanged apart from `tool`.
+- Tests: the picture draws only figures the page prints, no status colour anywhere, brass only for a person's call, the aria-label states the answer, public copy uses the plain words, the page follows the anatomy, and the vendored svgkit matches its pin.
+
 ## 0.3.0, 2026-11-26
 
 - Step 01 (Decide) of the Landing Loop. `open_decisions.py --loop FOLDER --bet SLUG` reads the bet's landing brief (through the Leader Report's parser, vendored byte-identical) and the `portfolio` key, and writes only the `decisions` key of `landing/<bet>.json`. Every other key is kept as found. Every figure carries value, unit, source, window and as_of.

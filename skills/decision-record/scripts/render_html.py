@@ -1,60 +1,154 @@
-"""The `decisions` key as one self-contained HTML page in the Leader Report style guide, and its Markdown twin.
+"""The `decisions` key as one self-contained HTML page, in the Leader Report style guide and the Landing Loop's one
+visual family, and its Markdown twin.
 
-The page takes the report's whole stylesheet from its template (assets/vendor/template.html, vendored
-byte-identical at a pinned commit), so it is the same brand family as the deck. It follows the report's
-references/design.md: mono capitals for labels, sans for sentences; hairlines, not boxes; brass for a
-person's call (who decides, who it waits on, the deadline). There is no status colour on this page: a
-decision is open or decided, and the bet's status words belong to did-it-land. Open decisions are drawn
-the way the report's decision slide draws them: options as rows, the deadline in brass.
+The page takes the report's whole stylesheet from its template (assets/vendor/template.html, vendored byte-identical
+at a pinned commit) and draws its picture with svgkit (scripts/vendor/svgkit.py, vendored byte-identical from
+landing-loop). Only a few rules for this page's layout are added.
 
-Nothing is loaded from the network, nothing depends on the clock or the machine, and every piece of
-text from a source is escaped.
+It reads top down for someone who has never seen the loop: the shared header, the verdict as the heading, a timeline
+with one row per decision from the day it was raised to the day a named person made it, then one thing to do next.
+Each call follows in two columns, then what the record read. The evidence ledger and the engineering detail (key
+names, the log's hash, model ids, the decider's exact words) sit in folds. Public copy uses plain words: project,
+target, landing brief (defined at first use), when you would undo it, the large model.
+
+Colour means one thing each: brass for a person's call (who decided, who a call waits on), grey for the record's own
+marks. There is no status colour on this page: a decision is open or decided, and the project's status words belong
+to did-it-land. The picture draws only figures the page prints, and its aria-label states the answer.
+
+Nothing is loaded from the network, nothing depends on the clock or the machine, and every piece of text from a
+source is escaped.
 
 Standard library only. Python 3.11 or later.
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import html
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "vendor"))
+
+import svgkit as sk  # noqa: E402  (vendored, unchanged; see VENDORED.json)
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "vendor" / "template.html"
 STYLE = re.compile(r"<style>(.*?)</style>", re.S)
 
-# Layout for this page only. Everything else comes from the template's stylesheet. The template paints
+# Layout for this page only. Everything else comes from the template's stylesheet and svgkit.CSS. The template paints
 # selection and the focus ring green, a status colour; this page sets both to ink.
 PAGE_CSS = """
 ::selection{background:var(--t1);color:var(--bg)}
 :focus-visible{outline-color:var(--t1)}
 main.solo{margin-left:0}
 .solo .slide{min-height:0}
-.solo .slide.cover{padding-top:72px;padding-bottom:40px}
-.rows{margin-top:8px}
-.rows>div{display:grid;grid-template-columns:168px minmax(0,1fr);gap:6px 36px;border-top:1px solid var(--line);padding:14px 0}
-.rows>div>span:first-child{font:400 10px/22px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
-.rows>div>span:last-child{color:var(--t2);font-size:13.5px}
+.solo .slide.cover{min-height:0;padding-top:40px;padding-bottom:48px;justify-content:flex-start}
+.solo h1{font-size:clamp(34px,4.6vw,60px);line-height:1;letter-spacing:-.04em;max-width:22ch;margin-bottom:20px}
+.solo .lede{margin-bottom:28px}
+.solo .lede b{color:var(--t1);font-weight:500}
+.cols{display:grid;grid-template-columns:minmax(0,640px) minmax(260px,1fr);gap:28px 48px;align-items:start}
+.side{display:grid;gap:24px}
+.next{display:grid;gap:10px;border:1px solid var(--brass);border-radius:12px;padding:20px 22px;background:var(--brass-bg)}
+.next>b{font:400 10px/16px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--brass)}
+.next p{margin:0;font-size:16px;line-height:1.5;color:var(--t1)}
+.next .whom{display:flex;flex-wrap:wrap;gap:4px 24px;font:400 11.5px/18px var(--mono);color:var(--brass)}
+.next .whom i{font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-right:8px}
+.next .whom .d{color:var(--t2)}
+.figs{margin:0;display:grid}
+.figs>div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 16px;border-top:1px solid var(--line);padding:10px 0}
+.figs dt{font:400 10px/22px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.figs dd{margin:0;font-size:13.5px;line-height:1.55;color:var(--t2)}
+.figs dd b{color:var(--t1);font-weight:500}
+.figs ul{margin:0;padding-left:16px}
 .who{color:var(--brass);font-family:var(--mono);font-size:12.5px}
+.calls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--s1)}
+.call{padding:20px 24px 14px;box-shadow:-1px 0 0 var(--line),0 -1px 0 var(--line)}
+.call h3{margin:0 0 10px;font:600 18px/1.25 var(--display);text-transform:none;letter-spacing:-.02em;color:var(--t1)}
+.call h3 .rk{display:block;font:400 10px/16px var(--mono);letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.call .figs>div:first-child{border-top:0}
+.call details{margin-top:4px}
+.chip.flag{color:var(--t1);border-color:var(--t1);margin-left:8px}
 .ask{font:600 21px/1.25 var(--display);letter-spacing:-.02em;color:var(--t1);margin:28px 0 6px}
 .ask:first-of-type{margin-top:0}
 .rec{color:var(--t2);font-size:13.5px;margin:0}
-.ev{color:var(--t3);font-size:12.5px}
-.solo .need{margin-top:24px}
-.solo .need-r{margin-top:6px}
+.quote{margin:8px 0 0;font-size:13px;line-height:1.55;color:var(--t2)}
+.quote span{display:block;font:400 11px/18px var(--mono);color:var(--t3)}
+.solo details{margin-top:20px}
+.solo details .tablewrap{margin-top:12px}
+.note{max-width:80ch;font-size:12.5px;line-height:1.6;color:var(--t2);margin:12px 0 0}
+.eng td{font-size:12px;vertical-align:top}
 .foot{max-width:1120px;margin:0 auto;padding:28px 40px 64px;color:var(--t3);font-size:12px}
-@media (max-width:980px){.rows>div{grid-template-columns:1fr;gap:2px}.foot{padding:24px 16px 48px}.solo .slide.cover{padding-top:48px}}
+@media (max-width:1100px){.cols{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:980px){.foot{padding:24px 16px 48px}.solo .slide.cover{padding-top:24px}.calls{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.figs>div{grid-template-columns:1fr;gap:0}.call{padding:16px 16px 12px}}
 """
 
-MARK = (
-    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">'
-    '<rect x="2" y="13" width="3" height="7" fill="var(--agent)"/><rect x="7" y="10" width="3" height="10" fill="var(--agent)"/>'
-    '<rect x="12" y="2" width="1.5" height="20" fill="var(--brass)"/><rect x="16" y="4" width="4" height="16" fill="var(--t1)"/></svg>'
+NUMBER_WORDS = ("No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve")
+
+# The record's words in the page's words. The record and the log keep the original text; the decider's exact words
+# are never changed, and print in a fold.
+WORDS = (
+    (r"\b([Ss])et the rollback trigger for\b", r"\1et when to undo"),
+    (r"\bthe rollback trigger\b", "when to undo it"),
+    (r"\bRoll back\b", "Undo"),
+    (r"\brolls back\b", "is undone"),
+    (r"\broll back\b", "undo"),
+    (r"\bChoose the model tier for\b", "Choose the AI model for"),
+    (r"\bvendor-a/xl\b", "the large model"),
+    (r"\bvendor-a/m\b", "the mid-size model"),
+    (r"\b(\d[\d,]*) tokens per task\b", r"\1 tokens of AI usage per task"),
+    (r"\b[Tt]okens per task\b", "AI usage per task"),
+    (r"\bthe brief's\b", "the landing brief's"),
+    (r"\bspec hold\b", "build plan hold"),
+    (r"\bthis bet\b", "this project"),
+    (r"\bthe bet\b", "the project"),
+    (r"\bbets\b", "projects"),
+    (r"\bbet\b", "project"),
+    (r"\bthe bar\b", "the target"),
 )
+
+# The ledger's figure names, in plain words. The key keeps its names; they print in the engineers' fold.
+FIGURE_NAMES = {
+    "open": "Open",
+    "decided": "Decided",
+    "waiting_long": "Waiting longer than usual",
+    "past_due": "Past their decide-by date",
+    "waiting_on_nobody": "Waiting on nobody",
+    "usual_days_to_decide": "Usual time to decide (median)",
+    "days_to_decide": "Days to decide",
+    "days_waiting": "Days waiting",
+}
 
 
 def e(text: Any) -> str:
     return html.escape(str(text), quote=True)
+
+
+def plain(text: str) -> str:
+    """The record's words in the page's words."""
+    for pattern, to in WORDS:
+        text = re.sub(pattern, to, text)
+    return text[:1].upper() + text[1:] if text[:1].islower() and text.startswith("the ") else text
+
+
+def figure_name(name: str) -> str:
+    base, _, rid = name.partition("@")
+    return f"{FIGURE_NAMES.get(base, base)}, {rid}" if rid else FIGURE_NAMES.get(base, base)
+
+
+def portfolio_parts(p: dict[str, Any]) -> list[str]:
+    """The portfolio review's rank and readiness, in plain words: 'rank 4 of 8', 'readiness 14 of 14 points'."""
+    parts = []
+    rank, score = p.get("rank"), p.get("brief_score")
+    if isinstance(rank, dict) and "value" in rank:
+        m = re.match(r"rank of (\d+)", str(rank.get("unit", "")))
+        parts.append(f"rank {rank['value']} of {m.group(1)}" if m else f"rank {rank['value']}")
+    if isinstance(score, dict) and "value" in score:
+        m = re.match(r"points of (\d+)", str(score.get("unit", "")))
+        parts.append(f"readiness {score['value']} of {m.group(1)} points" if m else f"readiness {score['value']}")
+    return parts
 
 
 def stylesheet() -> str:
@@ -70,13 +164,32 @@ def plural(n: int, word: str) -> str:
     return f"{n} {word}{'' if n == 1 else 's'}"
 
 
+def count_word(n: int) -> str:
+    return NUMBER_WORDS[n] if n < len(NUMBER_WORDS) else str(n)
+
+
+def and_join(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def usual(key: dict[str, Any]) -> float | None:
+    f = key["figures"].get("usual_days_to_decide")
+    return f["value"] if f else None
+
+
+def late_rows(key: dict[str, Any]) -> list[dict[str, Any]]:
+    """Open decisions waiting longer than the log's usual time to decide."""
+    f, u = key["figures"], usual(key)
+    return [r for r in key["rows"] if u is not None and f"days_waiting@{r['id']}" in f and r["days_waiting"] > u]
+
+
 def lede(key: dict[str, Any]) -> str:
     """'3 decided, 2 open. 1 waiting longer than usual: D-0004 has waited 14 days on Lead, Quoting squad, against a usual 7.'
 
     "Longer than usual" is against the log's usual time to decide. "Past due" is only a decide-by date that has passed."""
     f = key["figures"]
     out = f"{f['decided']['value']} decided, {f['open']['value']} open."
-    late = [r for r in key["rows"] if f"days_waiting@{r['id']}" in f and "usual_days_to_decide" in f and r["days_waiting"] > f["usual_days_to_decide"]["value"]]
+    late = late_rows(key)
     if late:
         r = late[0]
         who = r["owner"] or "nobody named"
@@ -92,20 +205,31 @@ def lede(key: dict[str, Any]) -> str:
     return out
 
 
+def verdict(key: dict[str, Any]) -> str:
+    """The heading: how many calls are made, how many wait, and the one thing that stands out."""
+    n_open, n_done = len(key["rows"]), len(key["decided"])
+    total = n_open + n_done
+    if not total:
+        return "No decisions recorded yet."
+    if not n_open:
+        parts = [f"All {count_word(total).lower()} decisions are made; none is open." if total > 1 else "The one decision is made."]
+    else:
+        parts = [f"{count_word(n_open)} of {count_word(total).lower()} decisions {'is' if n_open == 1 else 'are'} still open."]
+    due = [r for r in key["rows"] if r["deadline"] and r["deadline"] < key["as_of"]]
+    late = late_rows(key)
+    slow = slow_calls(key)
+    if due:
+        parts.append(f"{due[0]['id']} is past its decide-by date.")
+    elif late:
+        parts.append(f"{late[0]['id']} has waited longer than usual on {late[0]['owner'] or 'nobody named'}.")
+    elif slow:
+        parts.append(f"{count_word(len(slow))} took longer than usual to decide.")
+    return " ".join(parts)
+
+
 def figure_text(fig: dict[str, Any]) -> str:
     v = fig["value"]
     return f"{v:g} {fig['unit']}" if isinstance(v, float) else f"{v} {fig['unit']}"
-
-
-def open_block(r: dict[str, Any], fig: dict[str, Any] | None) -> str:
-    """One open decision, as the report's decision slide draws it: options as rows, the deadline in brass."""
-    options = [o for o in (r["options"] or "").split(" or ") if o]
-    rows = "".join(f'<div><span class="dc-k">Option {chr(65 + i)}</span>{e(o)}</div>' for i, o in enumerate(options))
-    wait = f"{plural(fig['value'], 'day')} open" if fig else "no opened date, so no age"
-    rows += f'<div><span class="dc-k">Waiting on</span><span><span class="who">{e(r["owner"] or "nobody named")}</span> <span class="t3">· {e(wait)}</span></span></div>'
-    if r["deadline"]:
-        rows += f'<div class="dl"><span class="dc-k">Decide by</span>{e(r["deadline"])}</div>'
-    return f'<p class="ask">{e(r["id"])}. {e(r["ask"])}</p><p class="rec">{e(r["recommendation"])}</p><div class="dc">{rows}</div>'
 
 
 def took(key: dict[str, Any], d: dict[str, Any]) -> str:
@@ -115,122 +239,334 @@ def took(key: dict[str, Any], d: dict[str, Any]) -> str:
     if not fig:
         return ""
     out = f", {plural(fig['value'], 'day')} after it was opened"
-    usual = f.get("usual_days_to_decide")
-    if usual and fig["value"] > usual["value"]:
-        out += f", longer than the usual {usual['value']:g}"
+    u = f.get("usual_days_to_decide")
+    if u and fig["value"] > u["value"]:
+        out += f", longer than the usual {u['value']:g}"
     return out
 
 
 def slow_calls(key: dict[str, Any]) -> list[tuple[str, int]]:
     """Decided records that took longer than the usual time to decide, slowest first."""
     f = key["figures"]
-    usual = f.get("usual_days_to_decide")
-    if not usual:
+    u = f.get("usual_days_to_decide")
+    if not u:
         return []
     slow = [(d["id"], f[f"days_to_decide@{d['id']}"]["value"]) for d in key["decided"] if f"days_to_decide@{d['id']}" in f]
-    return sorted([x for x in slow if x[1] > usual["value"]], key=lambda x: (-x[1], x[0]))
+    return sorted([x for x in slow if x[1] > u["value"]], key=lambda x: (-x[1], x[0]))
 
 
-def decided_rows(key: dict[str, Any]) -> str:
+def next_step(key: dict[str, Any]) -> tuple[str, str, str, str]:
+    """(the step, who, their role, when): the open call that waits longest on a person, or else the next review."""
+    if key["rows"]:
+        m = re.match(r"^(D-\d+) waits on (.+?): (.*?)(?: by (\d{4}-\d{2}-\d{2}))?\.$", key["next_step"])
+        if m:
+            return f"Decide {m.group(1)}: {plain(m.group(3))}.", key.get("next_step_by") or "nobody named", "Waiting on", m.group(4) or "no date set"
+        return plain(key["next_step"]), key.get("next_step_by") or "nobody named", "Waiting on", "no date set"
+    reviews = sorted({d["review_by"] for d in key["decided"] if d["review_by"]})
+    if not reviews:
+        return "Nothing waits on anyone: no decision is open and none has a review date.", key["brief"]["decides"], "Decides", "no date set"
+    first = reviews[0]
+    ids = [d["id"] for d in key["decided"] if d["review_by"] == first]
+    what = f"all {count_word(len(ids)).lower()} decisions" if len(ids) == len(key["decided"]) and len(ids) > 1 else and_join(ids)
+    when = f"was due {first}" if first < key["as_of"] else f"review by {first}"
+    return f"Review {what} against {'its' if len(ids) == 1 else 'their'} success signal{'' if len(ids) == 1 else 's'}.", key["brief"]["decides"], "Decides", when
+
+
+# The signature picture: one row per decision, raised to decided, the person's call in brass.
+
+
+def _day(text: str) -> int:
+    return dt.date.fromisoformat(text).toordinal()
+
+
+def spans(key: dict[str, Any]) -> list[dict[str, Any]]:
+    """One row per decision with a known opened date: decided calls first in log order, then open ones."""
+    f, u = key["figures"], usual(key)
     out = []
     for d in key["decided"]:
-        body = (
-            f'<b style="color:var(--t1);font-weight:600">{e(d["title"])}.</b> Chosen: {e(d["chosen"] or "as written")}. '
-            f'<span class="who">{e(d["decided_by"])}</span> decided on {e(d["date"])}{e(took(key, d))}. '
-            f"Owner {e(d['owner'] or 'not named')}, review by {e(d['review_by'] or 'not set')}, reversible {e(d['reversible'] or 'unknown')}.<br>"
-            f'<span class="ev">Success signal: {e(d["success_signal"] or "none recorded")}<br>'
-            + "".join(f"Assumes: {e(x)}<br>" for x in d.get("assumptions") or [])
-            + f'In their words: "{e(d["evidence"])}"</span>'
-        )
-        out.append(f"<div><span>{e(d['id'])}</span><span>{body}</span></div>")
-    return "".join(out)
+        fig = f.get(f"days_to_decide@{d['id']}")
+        if fig:
+            out.append(
+                {
+                    "id": d["id"],
+                    "what": plain(d["chosen"] or d["title"]),
+                    "from": fig["window"]["from"],
+                    "to": fig["window"]["to"],
+                    "days": fig["value"],
+                    "open": False,
+                    "slow": u is not None and fig["value"] > u,
+                }
+            )
+    for r in key["rows"]:
+        fig = f.get(f"days_waiting@{r['id']}")
+        if fig:
+            out.append(
+                {
+                    "id": r["id"],
+                    "what": plain(r["ask"]),
+                    "from": fig["window"]["from"],
+                    "to": fig["window"]["to"],
+                    "days": fig["value"],
+                    "open": True,
+                    "slow": u is not None and fig["value"] > u,
+                }
+            )
+    return out
 
 
-def loop_rows(key: dict[str, Any], record: dict[str, Any]) -> str:
-    b = key["brief"]
-    tested = ", ".join(b["tested_by"]) or "no decided record"
+def _wrap(text: str, chars: int) -> list[str]:
+    lines: list[str] = []
+    for word in text.split():
+        if lines and len(lines[-1]) + 1 + len(word) <= chars:
+            lines[-1] += " " + word
+        else:
+            lines.append(word)
+    return lines or [""]
+
+
+def timeline(key: dict[str, Any], variant: str) -> str:
+    wide = variant == "wide"
+    width = 640.0 if wide else float(sk.TALL)
+    rows = spans(key)
+    start, end = min(_day(s["from"]) for s in rows), max(_day(s["to"]) for s in rows)
+    x = sk.scale((start, end), (8, width - 10))
+    flag = "Longer than usual"
+    parts, y = [], 16.0
+    for s in rows:
+        days = f"{plural(s['days'], 'day')}{' waiting' if s['open'] else ''}"
+        right = width
+        parts.append(sk.label(right, y, days, anchor="end", tone=sk.INK if s["slow"] else sk.MUTED))
+        right -= sk.label_width(days) + 10
+        if s["slow"]:
+            right -= sk.chip_width(flag)
+            parts.append(sk.chip(right, y - 13, flag, tone=sk.INK))
+            right -= 10
+        parts.append(sk.label(0, y, s["id"], tone=sk.MUTED))
+        if wide:
+            room = int((right - 64) / sk.label_width("x"))
+            lines = _wrap(s["what"].upper(), room)[:1] if room > 8 else []
+            if lines:
+                text = lines[0] if len(lines[0]) == len(s["what"]) else lines[0] + "..."
+                parts.append(sk.label(64, y, text, tone=sk.INK))
+            y += 16
+        else:
+            for line in _wrap(s["what"].upper(), int(width / sk.label_width("x"))):
+                y += 16
+                parts.append(sk.label(0, y, line, tone=sk.INK))
+            y += 16
+        x1, x2 = x(_day(s["from"])), x(_day(s["to"]))
+        if s["open"]:
+            parts.append(sk.rule(x1, y, x2, y, tone=sk.INK, width=sk.STROKE, dashed=True))
+            parts.append(sk.hollow(x1, y, r=3.5, tone=sk.INK2) + sk.hollow(x2, y, r=5, tone=sk.BRASS))
+        else:
+            tone = sk.INK if s["slow"] else sk.INK2
+            parts.append(sk.rule(x1, y, x2, y, tone=tone, width=2.5 if s["slow"] else sk.STROKE))
+            parts.append(sk.hollow(x1, y, r=3.5, tone=tone))
+            parts.append(sk.person(x2, y + 7, size=15))
+        y += 30
+    axis = y - 8
+    parts.append(sk.rule(0, axis, width, axis))
+    first, last = dt.date.fromordinal(start).isoformat(), dt.date.fromordinal(end).isoformat()
+    parts.append(sk.label(0, axis + 18, first))
+    parts.append(sk.label(width, axis + 18, last, anchor="end"))
+    return sk.frame("".join(parts), label=timeline_label(key, rows), height=axis + 24, width=width, variant=variant)
+
+
+def timeline_label(key: dict[str, Any], rows: list[dict[str, Any]]) -> str:
+    """The picture's answer in one sentence."""
+    slow = [s for s in rows if s["slow"] and not s["open"]]
+    waiting = [s for s in rows if s["open"]]
+    u = usual(key)
+    head = f"{count_word(len(rows))} decisions from the day each was raised to the day a named person made it"
+    if waiting:
+        head += f"; {and_join([s['id'] for s in waiting])} still {'waits' if len(waiting) == 1 else 'wait'}"
+    if slow and u is not None:
+        took_ = and_join([f"{s['id']} took {plural(s['days'], 'day')}" for s in slow])
+        head += f"; {took_}, longer than the usual {u:g}"
+    return head + "."
+
+
+def caption(key: dict[str, Any]) -> str:
+    u = usual(key)
+    out = "Each row is one decision, from the day it was raised (open circle) to the day a named person made it (the brass figure)."
+    if u is not None:
+        out += f" A heavy row took longer than the usual {u:g} days, the median for this log."
+    if key["rows"]:
+        out += " A dashed row is still open, waiting on the person named."
+    return out
+
+
+# Sections
+
+
+def next_box(key: dict[str, Any]) -> str:
+    step, who, role, when = next_step(key)
+    return (
+        f'<div class="next"><b>What to do next</b><p>{e(step)}</p>'
+        f'<span class="whom"><span class="o"><i>{e(role)}</i>{e(who)}</span><span class="d"><i>When</i>{e(when)}</span></span></div>'
+    )
+
+
+def glance(key: dict[str, Any]) -> str:
+    f = key["figures"]
+    rows = [("Decided", f"<b>{f['decided']['value']}</b> decisions"), ("Open", f"<b>{f['open']['value']}</b> waiting on a named person")]
+    if "usual_days_to_decide" in f:
+        rows.append(("Usual time", f"<b>{f['usual_days_to_decide']['value']:g} days</b> from raised to decided, the median"))
+    slow = slow_calls(key)
+    if slow:
+        rows.append(("Longest", f"<b>{plural(slow[0][1], 'day')}</b> for {e(slow[0][0])}"))
+    rows.append(("Past due", f"<b>{f['past_due']['value']}</b> past their decide-by date"))
+    return '<dl class="figs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
+
+
+def open_block(r: dict[str, Any], fig: dict[str, Any] | None) -> str:
+    """One open decision, as the report's decision slide draws it: options as rows, the deadline in brass."""
+    options = [o for o in (r["options"] or "").split(" or ") if o]
+    rows = "".join(f'<div><span class="dc-k">Option {chr(65 + i)}</span>{e(plain(o))}</div>' for i, o in enumerate(options))
+    wait = f"{plural(fig['value'], 'day')} open" if fig else "no opened date, so no age"
+    rows += f'<div><span class="dc-k">Waiting on</span><span><span class="who">{e(r["owner"] or "nobody named")}</span> <span class="t3">· {e(wait)}</span></span></div>'
+    if r["deadline"]:
+        rows += f'<div class="dl"><span class="dc-k">Decide by</span>{e(r["deadline"])}</div>'
+    return f'<p class="ask">{e(r["id"])}. {e(plain(r["ask"]))}</p><p class="rec">{e(plain(r["recommendation"]))}</p><div class="dc">{rows}</div>'
+
+
+def call_card(key: dict[str, Any], d: dict[str, Any]) -> str:
+    slow = any(i == d["id"] for i, _ in slow_calls(key))
+    flag = '<span class="chip flag">Longer than usual</span>' if slow else ""
     rows = [
-        ("Brief", f"{b['metric']}: {b['bar']}, {b['better']} is better, by {b['by']}. Tested by {tested}. The brief says {b['decides']} decides the next step."),
+        ("Chosen", e(plain(d["chosen"] or "as written"))),
+        ("Decided by", f'<span class="who">{e(d["decided_by"])}</span> on {e(d["date"])}{e(took(key, d))}{flag}'),
+        ("Owner", f"{e(d['owner'] or 'not named')}, review by {e(d['review_by'] or 'not set')}"),
+        ("Can be undone", e(d["reversible"] or "unknown")),
+        ("Success signal", e(plain(d["success_signal"] or "none recorded"))),
+    ]
+    if d.get("assumptions"):
+        rows.append(("Assumes", "<ul>" + "".join(f"<li>{e(plain(x))}</li>" for x in d["assumptions"]) + "</ul>"))
+    body = "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows)
+    words = f'<details><summary>In their words</summary><p class="quote">"{e(d["evidence"])}"<span>{e(d["source"])}, checked word for word</span></p></details>'
+    return f'<article class="call"><h3><span class="rk">{e(d["id"])}</span>{e(plain(d["title"]))}</h3><dl class="figs">{body}</dl>{words}</article>'
+
+
+def read_rows(key: dict[str, Any], record: dict[str, Any]) -> str:
+    b = key["brief"]
+    tested = ", ".join(b["tested_by"]) or "no decision yet"
+    rows = [
+        ("Target", f"{e(b['metric'])}: {e(b['bar'])} or {e(b['better'])} by {e(b['by'])}"),
+        ("Tested by", f"{e(tested)}, the decision whose success signal is the landing brief's target"),
+        ("Decides next", f'<span class="who">{e(b["decides"])}</span>, as the landing brief names'),
     ]
     p = record.get("portfolio")
     if isinstance(p, dict):
-        parts = []
-        for name in ("rank", "brief_score"):
-            f = p.get(name)
-            if isinstance(f, dict) and "value" in f:
-                parts.append(f"{name.replace('_', ' ')} {f['value']} ({f['unit']}; {f['source']}, as of {f['as_of']})")
-        rows.append(("Portfolio", f"{p.get('tool', 'bet-portfolio-review')}: " + "; ".join(parts) + "."))
+        parts = [e(x) for x in portfolio_parts(p)]
+        text = "; ".join(parts)
+        rows.append(("Portfolio", f"{text[:1].upper() + text[1:]}, from the portfolio review of {e(p.get('as_of'))}"))
     else:
-        rows.append(("Portfolio", "Not read: run bet-portfolio-review first."))
-    rows.append(("Log", f"{key['log']['path']}, sha256 {key['log']['sha256'][:12]}."))
-    rows += [("Gap", g) for g in key["gaps"]]
-    return "".join(f"<div><span>{e(k)}</span><span>{e(v)}</span></div>" for k, v in rows)
+        rows.append(("Portfolio", "Not read yet: run bet-portfolio-review first."))
+    rows += [("Gap", e(plain(g))) for g in key["gaps"]]
+    return '<dl class="figs">' + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows) + "</dl>"
 
 
 def ledger(key: dict[str, Any]) -> str:
-    head = "<tr><th>Figure</th><th class=num>Value</th><th>Window</th><th>Source</th></tr>"
+    head = "<tr><th>Figure</th><th class=num>Value</th><th>Window</th></tr>"
     body = "".join(
-        f'<tr><td class="mono">{e(name)}</td><td class="num">{e(figure_text(f))}</td>'
-        f'<td class="mono" style="white-space:nowrap">{e(f["window"]["from"])} to {e(f["window"]["to"])}</td><td>{e(f["source"])}</td></tr>'
+        f'<tr><td>{e(figure_name(name))}</td><td class="num">{e(figure_text(f))}</td><td class="mono" style="white-space:nowrap">{e(f["window"]["from"])} to {e(f["window"]["to"])}</td></tr>'
         for name, f in key["figures"].items()
     )
     n = len(key["figures"])
-    return (
-        f'<details><summary>{n} figures, each with its value, window and source</summary><div class="tablewrap" style="margin-top:12px"><table>{head}{body}</table></div></details>'
+    return f'<details><summary>Evidence ledger ({plural(n, "figure")})</summary><div class="tablewrap"><table>{head}{body}</table></div><p class="note">Each figure is counted in code from the decision log; its source is in the engineers\' fold.</p></details>'
+
+
+def engineers(key: dict[str, Any], record: dict[str, Any]) -> str:
+    """Key names, sources, the log's hash and the model ids: none of it is needed to act on the page."""
+    head = "<tr><th>Key name</th><th>Source</th></tr>"
+    body = "".join(f'<tr><td class="mono">{e(n)}</td><td>{e(f["source"])}</td></tr>' for n, f in key["figures"].items())
+    p = record.get("portfolio")
+    note = (
+        f'<p class="note">Written by {e(key["tool"])} with <code>--loop</code> and <code>--bet</code>: the <code>decisions</code> key of '
+        f"<code>landing/{e(record.get('bet', '<slug>'))}.json</code>, and no other key. Log: <code>{e(key['log']['path'])}</code>, sha256 "
+        f"<code>{e(key['log']['sha256'][:12])}</code>. Open decisions are the Leader Report's decision rows ({e(', '.join(key['columns']))}). "
+        f"Portfolio read from {e(p.get('tool', 'bet-portfolio-review') if isinstance(p, dict) else 'nothing')}. "
+        "Model ids as written: vendor-a/m is the mid-size model, vendor-a/xl the large model.</p>"
     )
+    return f'<details><summary>For your engineers</summary><div class="tablewrap eng"><table>{head}{body}</table></div>{note}</details>'
 
 
 def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
-    meta = f"<span>Read {e(key['as_of'])}</span><span>{e(key['tool'])}</span>"
-    if key.get("illustrative"):
-        meta += '<span class="ill">Illustrative</span>'
-    opens = "".join(open_block(r, key["figures"].get(f"days_waiting@{r['id']}")) for r in key["rows"]) or '<p class="rec">No open decisions.</p>'
-    who = key.get("next_step_by")
-    call = (
-        f'<div class="need"><b>Next step</b><div class="need-r"><p>{e(key["next_step"])}</p>'
-        + (f'<span class="mono" style="color:var(--brass);font-size:11px">{e(who)}</span>' if who else "")
-        + "</div>"
-        + (f'<p style="margin-top:8px">{e(key["next_in_loop"])}</p>' if key["next_in_loop"] else "")
-        + "</div>"
+    version = "v" + key["tool"].rsplit(" ", 1)[-1]
+    header = sk.page_header("decision-record", date=f"Read {key['as_of']}", version=version, illustrative=bool(key.get("illustrative")))
+    b = key["brief"]
+    lede_html = (
+        f"{e(title)}: every call on this project names the one person who made it, or the one person it waits on, in their own words. "
+        f"The project is tested against its <b>landing brief</b>, a one-page plan: what good looks like, by when, at what cost. "
+        f"Here the target is {e(b['metric'].lower())} at {e(b['bar'])} or {e(b['better'])} by {e(b['by'])}."
     )
+    rows = spans(key)
+    pic = sk.figure(timeline(key, "wide"), timeline(key, "tall"), caption=caption(key), illustrative=bool(key.get("illustrative"))) if rows else ""
+    cover = (
+        f'<section class="slide cover">{header}<h1>{e(verdict(key))}</h1><p class="lede">{lede_html}</p>'
+        f'<div class="cols"><div>{pic}</div><div class="side">{next_box(key)}{glance(key)}</div></div></section>'
+    )
+    opens = ""
+    if key["rows"]:
+        blocks = "".join(open_block(r, key["figures"].get(f"days_waiting@{r['id']}")) for r in key["rows"])
+        opens = f'<section class="slide"><div class="meta"><span>Open</span></div><h2>Waiting on a named person</h2>{blocks}</section>'
+    calls = "".join(call_card(key, d) for d in key["decided"])
+    decided = f'<section class="slide"><div class="meta"><span>Decided</span></div><h2>Who made each call</h2><div class="calls">{calls}</div></section>' if calls else ""
+    read = f'<section class="slide"><div class="meta"><span>Read</span></div><h2>What the record read</h2>{read_rows(key, record)}</section>'
+    detail = f'<section class="slide"><div class="meta"><span>Detail</span></div>{ledger(key)}{engineers(key, record)}</section>'
     return (
         '<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        f'<title>{e(title)}</title><style>{stylesheet()}{PAGE_CSS}</style></head><body><main class="solo">'
-        f'<section class="slide cover"><div class="brand">{MARK}<span translate="no">DACARD</span></div><div class="meta">{meta}</div>'
-        f'<h1>{e(title)}</h1><p class="lede">{e(lede(key))} Every call names the one person who made it, or the one person it waits on.</p>{call}</section>'
-        f'<section class="slide"><div class="meta"><span>Open</span><span>As the Leader Report shows them</span></div><h2>Waiting on a named person</h2>{opens}</section>'
-        f'<section class="slide"><div class="meta"><span>Decided</span></div><h2>Who made each call</h2><div class="rows">{decided_rows(key)}</div></section>'
-        f'<section class="slide"><div class="meta"><span>Loop</span><span>01 Decide</span></div><h2>What it read</h2><div class="rows">{loop_rows(key, record)}</div></section>'
-        f'<section class="slide"><div class="meta"><span>Ledger</span></div><h2>Every figure, with its source</h2>{ledger(key)}</section>'
+        f'<title>{e(title)}</title><style>{stylesheet()}{sk.CSS}{PAGE_CSS}</style></head><body><main class="solo">'
+        f"{cover}{opens}{decided}{read}{detail}"
         '<p class="foot">Every figure is counted in code from the decision log, and every decider\'s words are checked against the source word for word. '
-        "A decision is open or decided. Whether the bet met its bar is did-it-land's call, later in the loop.</p></main></body></html>\n"
+        "A decision is open or decided. Whether the project met its target is did-it-land's call, later in the loop.</p></main></body></html>\n"
     )
 
 
 def markdown(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     """The plain-text twin of the page."""
     out = [f"# {title}", "", f"Read {key['as_of']} · {key['tool']}" + (" · Illustrative" if key.get("illustrative") else ""), ""]
-    out += [lede(key), "", f"Next step: {key['next_step']}", ""]
-    out += [key["next_in_loop"], ""] if key["next_in_loop"] else []
-    out += ["## Open, as the Leader Report shows them", ""]
-    cols = key["columns"]
-    out += ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
-    out += ["| " + " | ".join("" if r[c] is None else str(r[c]).replace("|", "\\|") for c in cols) + " |" for r in key["rows"]]
-    out += ["", "## Decided", ""]
+    out += [f"**{verdict(key)}**", "", lede(key), ""]
+    step, who, role, when = next_step(key)
+    out += ["## What to do next", "", f"{step} {role}: {who}. When: {when}.", ""]
+    if key["rows"]:
+        out += [
+            "## Open, waiting on a named person",
+            "",
+            "| Id | Decision needed | Options | Recommendation | Decide by | Waiting on | Days waiting |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        out += [
+            "| "
+            + " | ".join(
+                str(x if x is not None else "").replace("|", "\\|")
+                for x in (r["id"], plain(r["ask"]), plain(r["options"] or ""), plain(r["recommendation"] or ""), r["deadline"], r["owner"], r["days_waiting"])
+            )
+            + " |"
+            for r in key["rows"]
+        ]
+        out.append("")
+    out += ["## Who made each call", ""]
     for d in key["decided"]:
-        out.append(f"- {d['id']} {d['title']}. Chosen: {d['chosen']}. {d['decided_by']} decided on {d['date']}{took(key, d)}. Owner {d['owner']}, review by {d['review_by']}.")
-        out.append(f"  Reversible: {d['reversible'] or 'unknown'}. Success signal: {d['success_signal'] or 'none recorded'}")
-        out += [f"  Assumes: {x}" for x in d.get("assumptions") or []]
-        out.append(f'  In their words: "{d["evidence"]}"')
+        out.append(
+            f"- {d['id']} {plain(d['title'])}. Chosen: {plain(d['chosen'])}. {d['decided_by']} decided on {d['date']}{took(key, d)}. Owner {d['owner']}, review by {d['review_by']}."
+        )
+        out.append(f"  Can be undone: {d['reversible'] or 'unknown'}. Success signal: {plain(d['success_signal'] or 'none recorded')}")
+        out += [f"  Assumes: {plain(x)}" for x in d.get("assumptions") or []]
     b = key["brief"]
-    out += ["", "## What it read", "", f"- Brief: {b['metric']}, {b['bar']}, {b['better']} is better, by {b['by']}. Tested by {', '.join(b['tested_by']) or 'no decided record'}."]
+    out += ["", "## What the record read", "", f"- Target: {b['metric']}, {b['bar']} or {b['better']} by {b['by']}. Tested by {', '.join(b['tested_by']) or 'no decision yet'}."]
     p = record.get("portfolio")
     if isinstance(p, dict):
-        parts = [f"{n.replace('_', ' ')} {p[n]['value']} ({p[n]['unit']})" for n in ("rank", "brief_score") if isinstance(p.get(n), dict) and "value" in p[n]]
-        out.append(f"- Portfolio: {p.get('tool', 'bet-portfolio-review')}, as of {p.get('as_of')}: " + "; ".join(parts) + ".")
+        parts = portfolio_parts(p)
+        out.append(f"- Portfolio review of {p.get('as_of')}: " + "; ".join(parts) + ".")
     else:
-        out.append("- Portfolio: not read. Run bet-portfolio-review first.")
-    out += [f"- Gap: {g}" for g in key["gaps"]]
-    out += ["", "## Ledger", "", "| Figure | Value | Window | Source |", "|---|---|---|---|"]
-    out += [f"| {n} | {figure_text(f)} | {f['window']['from']} to {f['window']['to']} | {f['source']} |" for n, f in key["figures"].items()]
+        out.append("- Portfolio: not read yet. Run bet-portfolio-review first.")
+    out += [f"- Gap: {plain(g)}" for g in key["gaps"]]
+    out += ["", "## Evidence", "", "| Figure | Value | Window |", "|---|---|---|"]
+    out += [f"| {figure_name(n)} | {figure_text(f)} | {f['window']['from']} to {f['window']['to']} |" for n, f in key["figures"].items()]
+    out += ["", "## For your engineers", "", "Each decider's words, checked word for word against the source:", ""]
+    out += [f'- {d["id"]}: "{d["evidence"]}" ({d["source"]})' for d in key["decided"]]
+    out += ["", "| Key name | Source |", "|---|---|"]
+    out += [f"| {n} | {f['source']} |" for n, f in key["figures"].items()]
+    out += ["", f"Log: {key['log']['path']}, sha256 {key['log']['sha256'][:12]}. Model ids as written: vendor-a/m is the mid-size model, vendor-a/xl the large model."]
     return "\n".join(out) + "\n"

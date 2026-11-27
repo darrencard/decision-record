@@ -36,6 +36,7 @@ SKILL = ROOT / "skills" / "decision-record"
 SCRIPTS = SKILL / "scripts"
 ACME = ROOT / "examples" / "acme"
 sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(SCRIPTS / "vendor"))
 
 import declog  # noqa: E402
 import from_thread  # noqa: E402
@@ -43,6 +44,7 @@ import landing_brief  # noqa: E402
 import loop  # noqa: E402
 import open_decisions  # noqa: E402
 import render_html  # noqa: E402
+import svgkit  # noqa: E402
 
 BET = "quote-drafting"
 AS_OF = "2026-11-26"  # the record key: the full log, read late in the loop
@@ -377,7 +379,8 @@ class Page(unittest.TestCase):
         self.assertNotIn("@import", self.html)
 
     def test_illustrative_tag_is_visible(self):
-        self.assertIn('<span class="ill">Illustrative</span>', self.body)
+        self.assertIn('<span class="sk-ill">Illustrative</span>', self.body)
+        self.assertIn(":root{--ill:#74A5DA}", self.html, "the Illustrative tag is blue")
 
     def test_selection_and_focus_ring_are_ink_not_green(self):
         css = self.html[self.html.index("::selection{background:var(--t1)") :]
@@ -390,8 +393,70 @@ class Page(unittest.TestCase):
         self.assertNotIn("var(--stalled)", self.body)
         brass = re.findall(r'<span class="who">([^<]*)</span>', self.body)
         self.assertEqual(set(brass), {"Head of Product, Quoting squad", "Tech lead, Quoting squad"})
-        # The brand mark's brass bar only: nothing is open, so no next step waits on a person.
-        self.assertEqual(self.body.count("var(--brass)"), 1)
+        # Brass paints the brand mark's bar and one person figure per decided call in each variant of the picture.
+        figures = sum(svg.count("var(--brass)") for svg in svgkit.visuals_in(self.body))
+        self.assertEqual(figures, 2 * 2 * 5)
+        self.assertEqual(self.body.count("var(--brass)"), 1 + figures)
+
+    def test_the_page_follows_the_sample_anatomy(self):
+        body = self.body.split('<main class="solo">', 1)[1]
+        order = ['class="sk-hdr"', "<h1>", 'role="img"', "What to do next", 'class="calls"', "Evidence ledger", "For your engineers"]
+        at = [body.index(x) for x in order]
+        self.assertEqual(at, sorted(at))
+        self.assertIn("<h1>All five decisions are made; none is open. Two took longer than usual to decide.</h1>", body)
+        self.assertEqual(body.count('<div class="next">'), 1, "one next step leads the page")
+        self.assertIn('<span class="o"><i>Decides</i>Head of Product, Quoting squad</span><span class="d"><i>When</i>was due 2026-11-15</span>', body)
+        self.assertNotIn("Book a call", body, "a sample is the skill's own output: no call to action")
+
+    def test_the_visual_draws_only_figures_the_page_prints(self):
+        self.assertEqual(len(svgkit.visuals_in(self.html)), 2, "the timeline, wide and tall")
+        self.assertEqual(svgkit.unprinted(self.html), [])
+        key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]
+        for svg in svgkit.visuals_in(self.html):
+            drawn = svgkit.texts_in(svg)
+            for d in key["decided"]:
+                self.assertIn(d["id"], drawn)
+                days = key["figures"]["days_to_decide@" + d["id"]]["value"]
+                self.assertIn(f"{days} DAYS", drawn)
+            self.assertEqual(drawn.count("LONGER THAN USUAL"), 2)
+
+    def test_the_visual_draws_open_calls_dashed_with_no_person(self):
+        records = declog.parse_log((ACME / "decide-step" / "decisions.md").read_text(encoding="utf-8"))
+        key = loop.build(records, date.fromisoformat(DECIDE_STEP), {"path": "decisions.md", "sha256": "0" * 64}, landing_brief_for_acme(), None)
+        out = render_html.page(key, {}, "T")
+        self.assertEqual(svgkit.unprinted(out), [])
+        wide = svgkit.visuals_in(out)[0]
+        self.assertEqual(wide.count('stroke-dasharray="4 3"'), 2)
+        self.assertEqual(wide.count('<path d="M'), 3, "a person figure for each of the three decided calls only")
+        self.assertIn("<h1>Two of five decisions are still open. D-0004 has waited longer than usual on Lead, Quoting squad.</h1>", out)
+        self.assertIn("<p>Decide D-0004: set when to undo quote drafting.</p>", out)
+
+    def test_each_visual_states_its_answer(self):
+        labels = re.findall(r'role="img" aria-label="([^"]+)"', self.html)
+        self.assertEqual(len(labels), 2)
+        for label in labels:
+            self.assertEqual(
+                label,
+                "Five decisions from the day each was raised to the day a named person made it; D-0004 took 28 days and D-0005 took 21 days, longer than the usual 14.",
+            )
+
+    def test_public_copy_uses_plain_words(self):
+        public = re.sub(r"<details>.*?</details>", " ", self.body.split("Evidence ledger", 1)[0], flags=re.S)
+        public = svgkit.page_text("</style>" + public).lower()
+        for word in (" bet ", " bets ", " bar ", "rollback", "roll back", "vendor-a", "tokens per task", ".json", "_"):
+            self.assertNotIn(word, public, word)
+        self.assertIn("<b>landing brief</b>, a one-page plan", self.body)
+        md = (ACME / "decision-record.md").read_text(encoding="utf-8").split("## For your engineers", 1)[0].lower()
+        for word in (" bet ", " bets ", "rollback", "roll back", "vendor-a", "tokens per task"):
+            self.assertNotIn(word, md, word)
+
+    def test_svgkit_matches_its_landing_loop_pin(self):
+        pin = json.loads((SKILL / "VENDORED.json").read_text(encoding="utf-8"))["landing-loop"]
+        self.assertEqual(pin["commit"], "5d01756d08ab3eb92b457c3286729791df6bcf5f")
+        self.assertEqual(set(pin["files"]), {"scripts/vendor/svgkit.py"})
+        for rel, info in pin["files"].items():
+            digest = hashlib.sha256((SKILL / rel).read_bytes()).hexdigest()
+            self.assertEqual(digest, info["sha256"], f"{rel} changed. Copy it again from landing-loop at the pinned commit and update VENDORED.json.")
 
     def test_source_text_is_escaped(self):
         key = json.loads((ACME / "landing" / f"{BET}.json").read_text(encoding="utf-8"))["decisions"]

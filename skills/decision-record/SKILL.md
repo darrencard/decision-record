@@ -4,7 +4,7 @@ description: Turns a Slack thread, meeting notes or a call transcript into a dec
 license: MIT. See LICENSE in the repository root.
 metadata:
   author: Dacard
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
 # Decision record
@@ -88,7 +88,7 @@ python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop F
 - A brief edited after the record opened (its sha256 changed), or an invalid log, is refused and nothing is written. Say so, and name the fix.
 - `rows` are the open decisions in the Leader Report's decision format, so its decision slide reads them unchanged. `decided` lists each call with the one person who made it. `brief.tested_by` names the decided record whose success signal is the brief's bar; if none does, it is listed under `gaps`. Without a `portfolio` key, that is a gap too: say "portfolio not read: run bet-portfolio-review first".
 - Every figure (open, decided, waiting longer than usual, past due, oldest open, usual days to decide, days waiting and days to decide per record) carries value, unit, source, window and as_of, counted in code. Quote them; never work one out.
-- The page uses brass only for a person's call: who decided, who a call waits on, the deadline. It has no status colour, and says open or decided, never a bet's status.
+- The page follows the Landing Loop sample anatomy: the verdict as its heading, a timeline with one row per decision from the day it was raised to the day a named person made it (rows longer than usual drawn heavy and tagged), one next step with its person in brass, then each call in two columns. The evidence ledger, key names and each decider's exact words fold. Public copy uses plain words (project, target, when to undo it, the large model). Brass marks only a person's call. It has no status colour, and says open or decided, never a project's status.
 
 Then hand on: the next step in the loop is 02 Spec, spec-auditor on the bet's spec.
 

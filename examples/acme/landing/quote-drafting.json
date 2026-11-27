@@ -57,7 +57,7 @@
     "next_step": "Next in the loop, 02 Spec: run spec-auditor on the bet's spec against this brief before build starts."
   },
   "decisions": {
-    "tool": "decision-record 0.3.0",
+    "tool": "decision-record 0.3.1",
     "as_of": "2026-11-26",
     "log": {
       "path": "decisions.md",
@@ -169,7 +169,7 @@
       "open": {
         "value": 0,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d)",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-11-26"
@@ -179,7 +179,7 @@
       "decided": {
         "value": 5,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d)",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-11-26"
@@ -189,7 +189,7 @@
       "waiting_long": {
         "value": 0,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d)",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-11-26"
@@ -199,7 +199,7 @@
       "past_due": {
         "value": 0,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); open with a decide-by date before as_of",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); open with a decide-by date before as_of",
         "window": {
           "from": "2026-07-13",
           "to": "2026-11-26"
@@ -209,7 +209,7 @@
       "waiting_on_nobody": {
         "value": 0,
         "unit": "decisions",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d)",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d)",
         "window": {
           "from": "2026-07-13",
           "to": "2026-11-26"
@@ -219,7 +219,7 @@
       "usual_days_to_decide": {
         "value": 14.0,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided",
         "window": {
           "from": "2026-07-13",
           "to": "2026-11-26"
@@ -229,7 +229,7 @@
       "days_to_decide@D-0001": {
         "value": 7,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
         "window": {
           "from": "2026-07-20",
           "to": "2026-07-27"
@@ -239,7 +239,7 @@
       "days_to_decide@D-0002": {
         "value": 14,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
         "window": {
           "from": "2026-07-13",
           "to": "2026-07-27"
@@ -249,7 +249,7 @@
       "days_to_decide@D-0003": {
         "value": 5,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
         "window": {
           "from": "2026-07-22",
           "to": "2026-07-27"
@@ -259,7 +259,7 @@
       "days_to_decide@D-0004": {
         "value": 28,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
         "window": {
           "from": "2026-07-13",
           "to": "2026-08-10"
@@ -269,7 +269,7 @@
       "days_to_decide@D-0005": {
         "value": 21,
         "unit": "days",
-        "source": "decision-record 0.3.0: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
+        "source": "decision-record 0.3.1: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date",
         "window": {
           "from": "2026-07-20",
           "to": "2026-08-10"
