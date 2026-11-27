@@ -12,9 +12,9 @@ One Markdown file. `scripts/record.py` writes every record and `scripts/declog.p
   - Approve before send
   - Auto-send under a value threshold
 - Chosen: Approve before send
-- Decided by: Maya Ortiz
+- Decided by: Head of Product, Quoting squad
 - Date: 2026-11-12
-- Owner: Tom Okafor
+- Owner: Quoting squad lead
 - Review by: 2026-12-15
 - Reversible: yes
 - Success signal: Wrong-line-item complaints fall below 5 a month by 2026-12-15 (illustrative), with quote send time no more than 1 day slower.

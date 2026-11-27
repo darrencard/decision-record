@@ -1,19 +1,19 @@
-Illustrative sample. Acme is an invented company and every person, figure and date here is made up.
+Illustrative sample. Acme is an invented company and every figure and date here is made up, and people are named by their role.
 Acme decide call: quote drafting
 Date: 2026-07-27
-Attendees: Maya Ortiz (Head of Product), Tom Okafor (Quoting squad lead), Priya Raman (Head of Engineering), Sam Whitfield (product manager)
+Attendees: Head of Product, Quoting squad; Quoting squad lead; Quoting squad tech lead; Quoting squad product manager
 
-Sam Whitfield (00:00:40): The portfolio review ranked quote drafting fourth of eight. Its brief is complete: 40% draft acceptance by 15 November, 9,000 tokens per task.
-Maya Ortiz (00:02:10): The question from last week is whether we build quote drafting now or hold it until auto-match ships.
-Tom Okafor (00:03:05): The squad can start on Monday. Auto-match does not touch the quote flow.
-Maya Ortiz (00:04:30): My call: we build quote drafting now, against the brief as written, and we review it on 15 November.
-Tom Okafor (00:06:15): On sending, the options are auto-send every draft, approve before send, or auto-send under a value threshold.
-Sam Whitfield (00:07:00): Support says one wrong line item costs us the customer. I would not auto-send anything yet.
-Maya Ortiz (00:08:20): Decided: every drafted quote waits for the tradesperson to approve it before it sends.
-Priya Raman (00:10:45): On prices, the model never writes a price. Prices come from the price book in fixed code. That is my call for v1.
-Tom Okafor (00:13:10): We still need a rollback trigger. Two candidates: roll back when wrong-price quotes pass 2%, or roll back when rejected drafts pass 30%.
-Sam Whitfield (00:14:00): I recommend the wrong-price trigger at 2%. It is the failure customers see.
-Tom Okafor (00:14:40): I need a week of pilot numbers before I pick. I will decide by 3 August.
-Priya Raman (00:16:20): Model tier is open too. vendor-a/xl drafts better, vendor-a/m fits the 9,000 token budget.
-Tom Okafor (00:17:05): I recommend vendor-a/m so we stay inside the budget.
-Priya Raman (00:17:50): I want the evals run on both before I choose. I will decide by 3 August.
+Quoting squad product manager (00:00:40): The portfolio review ranked quote drafting fourth of eight. Its brief is complete: 40% draft acceptance by 15 November, 9,000 tokens per task.
+Head of Product, Quoting squad (00:02:10): The question from last week is whether we build quote drafting now or hold it until auto-match ships.
+Quoting squad lead (00:03:05): The squad can start on Monday. Auto-match does not touch the quote flow.
+Head of Product, Quoting squad (00:04:30): My call: we build quote drafting now, against the brief as written, and we review it on 15 November.
+Quoting squad lead (00:06:15): On sending, the options are auto-send every draft, approve before send, or auto-send under a value threshold.
+Quoting squad product manager (00:07:00): Support says one wrong line item costs us the customer. I would not auto-send anything yet.
+Head of Product, Quoting squad (00:08:20): Decided: every drafted quote waits for the tradesperson to approve it before it sends.
+Quoting squad tech lead (00:10:45): On prices, the model never writes a price. Prices come from the price book in fixed code. That is my call for v1.
+Quoting squad lead (00:13:10): We still need a rollback trigger. Two candidates: roll back when wrong-price quotes pass 2%, or roll back when rejected drafts pass 30%.
+Quoting squad product manager (00:14:00): I recommend the wrong-price trigger at 2%. It is the failure customers see.
+Quoting squad lead (00:14:40): I need a week of pilot numbers before I pick. I will decide by 3 August.
+Quoting squad tech lead (00:16:20): Model tier is open too. vendor-a/xl drafts better, vendor-a/m fits the 9,000 token budget.
+Quoting squad lead (00:17:05): I recommend vendor-a/m so we stay inside the budget.
+Quoting squad tech lead (00:17:50): I want the evals run on both before I choose. I will decide by 3 August.

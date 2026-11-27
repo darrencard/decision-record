@@ -174,7 +174,7 @@ class LoopRecord(Work):
         for d in key["decided"]:
             self.assertTrue(declog.is_named_person(d["decided_by"]), d)
         self.assertEqual(key["brief"]["tested_by"], ["D-0001"])
-        self.assertEqual(key["next_step_by"], "Tom Okafor")
+        self.assertEqual(key["next_step_by"], "Quoting squad lead")
 
 
 class Figures(unittest.TestCase):
@@ -259,7 +259,7 @@ class Refusals(Work):
 
     def test_an_invalid_log_writes_nothing(self):
         before = self.record.read_bytes()
-        self.log.write_text(self.log.read_text(encoding="utf-8").replace("- Decided by: Priya Raman", "- Decided by: The team"), encoding="utf-8")
+        self.log.write_text(self.log.read_text(encoding="utf-8").replace("- Decided by: Quoting squad tech lead", "- Decided by: The team"), encoding="utf-8")
         code, err = self.run_loop()
         self.assertEqual(code, 2)
         self.assertIn("invalid record", err)
@@ -288,7 +288,7 @@ class Page(unittest.TestCase):
         self.assertNotIn("var(--landed)", self.body)
         self.assertNotIn("var(--stalled)", self.body)
         brass = re.findall(r'<span class="who">([^<]*)</span>', self.body)
-        self.assertEqual(set(brass), {"Maya Ortiz", "Priya Raman", "Tom Okafor"})
+        self.assertEqual(set(brass), {"Head of Product, Quoting squad", "Quoting squad tech lead", "Quoting squad lead"})
         # The brand mark's brass bar, and the next step's named person. Nothing else.
         self.assertEqual(self.body.count("var(--brass)"), 2)
 

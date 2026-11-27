@@ -10,9 +10,9 @@
   - Build quote drafting now
   - Hold it until auto-match ships
 - Chosen: Build quote drafting now
-- Decided by: Maya Ortiz
+- Decided by: Head of Product, Quoting squad
 - Date: 2026-07-27
-- Owner: Tom Okafor
+- Owner: Quoting squad lead
 - Review by: 2026-11-15
 - Reversible: yes
 - Success signal: Quote draft acceptance rate at 40% or higher by 2026-11-15, as the landing brief sets.
@@ -32,9 +32,9 @@
   - Approve before send
   - Auto-send under a value threshold
 - Chosen: Approve before send
-- Decided by: Maya Ortiz
+- Decided by: Head of Product, Quoting squad
 - Date: 2026-07-27
-- Owner: Tom Okafor
+- Owner: Quoting squad lead
 - Review by: 2026-11-15
 - Reversible: yes
 - Success signal: Wrong-line-item complaints below 5 a month by 2026-11-15 (illustrative).
@@ -52,9 +52,9 @@
   - Prices from the price book
   - Model suggests prices
 - Chosen: Prices from the price book
-- Decided by: Priya Raman
+- Decided by: Quoting squad tech lead
 - Date: 2026-07-27
-- Owner: Tom Okafor
+- Owner: Quoting squad lead
 - Review by: 2026-11-15
 - Reversible: yes
 - Success signal: No sent quote carries a price that differs from the price book, checked weekly to 2026-11-15 (illustrative).
@@ -70,9 +70,9 @@
   - Roll back when wrong-price quotes pass 2%
   - Roll back when rejected drafts pass 30%
 - Opened: 2026-07-13
-- Waiting on: Tom Okafor
+- Waiting on: Quoting squad lead
 - Decide by: 2026-08-03
-- Recommendation: Sam Whitfield recommends the wrong-price trigger at 2%
+- Recommendation: The Quoting squad product manager recommends the wrong-price trigger at 2%
 - Source: Acme decide call, 2026-07-27 (illustrative)
 
 ## D-0005: Choose the model tier for quote drafts
@@ -83,7 +83,7 @@
   - vendor-a/xl
   - vendor-a/m
 - Opened: 2026-07-20
-- Waiting on: Priya Raman
+- Waiting on: Quoting squad tech lead
 - Decide by: 2026-08-03
-- Recommendation: Tom Okafor recommends vendor-a/m, to stay inside the 9,000 token budget
+- Recommendation: The Quoting squad lead recommends vendor-a/m, to stay inside the 9,000 token budget
 - Source: Acme decide call, 2026-07-27 (illustrative)

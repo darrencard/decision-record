@@ -27,8 +27,8 @@ python3 examples/acme/sample.py
 It reads Acme's decide call of 2026-07-27 ([sources/](examples/acme/sources)), checks five draft records against it, and writes [examples/acme/decision-record.html](examples/acme/decision-record.html), its Markdown twin, the log [decisions.md](examples/acme/decisions.md), and the `decisions` key of [landing/quote-drafting.json](examples/acme/landing/quote-drafting.json). It starts from the landing-loop record filtered to the keys it reads ([upstream/](examples/acme/upstream)). A test checks the command reproduces every committed file byte for byte.
 
 ```text
-3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Tom Okafor, against a usual 7.
-Next step: D-0004 waits on Tom Okafor: set the rollback trigger for quote drafting by 2026-08-03.
+3 decided, 2 open. 1 past due: D-0004 has waited 14 days on Quoting squad lead, against a usual 7.
+Next step: D-0004 waits on Quoting squad lead: set the rollback trigger for quote drafting by 2026-08-03.
 ```
 
 ## Install
@@ -66,13 +66,13 @@ Open decisions go in `rows`, in the Leader Report's decision format (`ask`, `opt
   "as_of": "2026-07-27",
   "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
   "rows": [{"ask": "Set the rollback trigger for quote drafting", "options": "Roll back when wrong-price quotes pass 2% or Roll back when rejected drafts pass 30%",
-            "recommendation": "Sam Whitfield recommends the wrong-price trigger at 2%. Waiting on Tom Okafor, 14 days open, past the usual 7 days to decide.",
-            "deadline": "2026-08-03", "owner": "Tom Okafor", "days_waiting": 14, "id": "D-0004", "source": "Acme decide call, 2026-07-27 (illustrative)"}],
-  "decided": [{"id": "D-0001", "title": "Build quote drafting now, against its landing brief", "decided_by": "Maya Ortiz", "date": "2026-07-27"}],
+            "recommendation": "The Quoting squad product manager recommends the wrong-price trigger at 2%. Waiting on Quoting squad lead, 14 days open, past the usual 7 days to decide.",
+            "deadline": "2026-08-03", "owner": "Quoting squad lead", "days_waiting": 14, "id": "D-0004", "source": "Acme decide call, 2026-07-27 (illustrative)"}],
+  "decided": [{"id": "D-0001", "title": "Build quote drafting now, against its landing brief", "decided_by": "Head of Product, Quoting squad", "date": "2026-07-27"}],
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
   "figures": {"past_due": {"value": 1, "unit": "decisions", "source": "decision-record 0.3.0: counted from decisions.md (sha256 1de81b65e887)",
               "window": {"from": "2026-07-13", "to": "2026-07-27"}, "as_of": "2026-07-27"}},
-  "next_step": "D-0004 waits on Tom Okafor: set the rollback trigger for quote drafting by 2026-08-03."
+  "next_step": "D-0004 waits on Quoting squad lead: set the rollback trigger for quote drafting by 2026-08-03."
 }
 ```
 
@@ -102,3 +102,5 @@ Its words are a decision's own: open, decided, dropped, past due. A decision's o
 - [references/log-format.md](skills/decision-record/references/log-format.md): the log format.
 
 Version 0.3.0. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).
+
+Claude and Claude Code are trademarks of Anthropic, PBC. These skills are independent and not affiliated with or endorsed by Anthropic.
