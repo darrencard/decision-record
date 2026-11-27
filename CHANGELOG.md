@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.5, 2026-11-27
+
+- 12px floor: `floor_fonts` raises every size under 12px to 12px, and the page's own labels (What to do next, Decides, When, the figure labels, rank labels and quote sources) are 12px; no 11.5px text remains. The vendored files are unchanged. Test: no font size under 12px in the page CSS.
+- Dates never break: every ISO date in the page's text sits in a `white-space:nowrap` span (attributes, code and the title keep theirs). Test.
+- README opens with the vocabulary bridge, "A bet is a project you expect to move a number; its bar is the target its landing brief sets."; SKILL.md says "Use the user's word, project or bet; the record key stays `bet`.", and its prose says target, not bar.
+- `dist/` is ignored; release assets carry the zips and their sums.
+
 ## 0.3.4, 2026-11-27
 
 - Text runs the full column: the heading, the lede, the next step, section text, notes and captions are as wide as the scorecard frame. The page's own CSS lifts every cap on text (the template's `.lede` 62ch, and this page's heading 22ch and notes 80ch). It sets `text-wrap: balance` on the heading and `pretty` on paragraphs. The next step and the figures at a glance now stack under the scorecard, so the next step runs the full column too. The vendored template is unchanged. Test: the page CSS sets no max-width on h1, .lede or p, and the override comes after the template's cap.

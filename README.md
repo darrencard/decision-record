@@ -2,6 +2,8 @@
 
 A free Claude skill that turns a thread, meeting notes or a transcript into a decision record, and refuses to call anything decided until one named person made the call.
 
+A bet is a project you expect to move a number; its bar is the target its landing brief sets.
+
 ## Paste this into Claude Code
 
 ```text
@@ -12,7 +14,7 @@ Install the decision-record skill: run /plugin marketplace add darrencard/landin
 
 **Why it matters:** most teams lose decisions in threads. Weeks later nobody can say who decided, what was turned down, or what result the call was meant to bring.
 
-**Where it sits:** step 01 (Decide) of the Landing Loop. It reads the project's landing brief and the `portfolio` key bet-portfolio-review wrote, writes only its `decisions` key in `landing/<bet>.json`, and feeds the Leader Report's decision slide unchanged.
+**Where it sits:** step 01 (Decide) of the Landing Loop. It reads the project's landing brief and the `portfolio` key `bet-portfolio-review` wrote, writes only its `decisions` key in `landing/<bet>.json`, and feeds the Leader Report's decision slide unchanged.
 
 **How it works:** Python checks every record against the source before it is written. The decider's words must be in the source, word for word, on the date the record gives. A decider is one person's name ("Maya Ortiz") or one role scoped to one team, written "<role>, <team or squad>" ("Head of Product, Quoting squad"). A group or a bare role ("the team", "Head of Engineering", "TBD") is not a decider, so the call is logged as open, waiting on a named person. Code computes every count and age. The model never does the maths.
 
@@ -61,7 +63,7 @@ Standalone: clone this repository and copy `skills/decision-record` into `~/.cla
 
 | | |
 |---|---|
-| Reads | The source: a Slack thread or Linear comments through `from_thread.py` (live first), or a CSV or pasted text as the fallback. The project's landing brief, through the Leader Report's own parser. The `portfolio` key, if bet-portfolio-review wrote it. |
+| Reads | The source: a Slack thread or Linear comments through `from_thread.py` (live first), or a CSV or pasted text as the fallback. The project's landing brief, through the Leader Report's own parser. The `portfolio` key, if `bet-portfolio-review` wrote it. |
 | Writes | `decisions.md`, an append-only log your team can diff. The `decisions` key of `landing/<bet>.json`, and nothing else in it. One HTML page in the Leader Report style and the Landing Loop's one visual family (a timeline of each call, raised to decided), and its Markdown twin. |
 
 Your own project, once the records are in the log:
@@ -77,7 +79,7 @@ Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report'
 
 ```json
 "decisions": {
-  "tool": "decision-record 0.3.4",
+  "tool": "decision-record 0.3.5",
   "as_of": "2026-11-26",
   "reads": {"brief": true, "portfolio": true},
   "columns": ["ask", "options", "recommendation", "deadline", "owner", "days_waiting", "id", "source"],
@@ -86,8 +88,8 @@ Open decisions go in `rows` (none on 2026-11-26 for Acme), in the Leader Report'
                "decided_by": "Head of Product, Quoting squad", "date": "2026-08-10", "owner": "Tech lead, Quoting squad",
                "source": "Acme spec review call, 2026-08-10 (illustrative)"}],
   "brief": {"metric": "Quote draft acceptance rate", "bar": "40%", "by": "2026-11-15", "tested_by": ["D-0001"]},
-  "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.4: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
-              "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.4: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
+  "figures": {"days_to_decide@D-0004": {"value": 28, "unit": "days", "source": "decision-record 0.3.5: counted from decisions.md (sha256 096127d5d48d); decided date minus the opened date", "window": {"from": "2026-07-13", "to": "2026-08-10"}, "as_of": "2026-11-26"},
+              "usual_days_to_decide": {"value": 14.0, "unit": "days", "source": "decision-record 0.3.5: counted from decisions.md (sha256 096127d5d48d); median days from opened to decided", "window": {"from": "2026-07-13", "to": "2026-11-26"}, "as_of": "2026-11-26"}},
   "next_step": "No open decisions on this project."
 }
 ```
@@ -117,6 +119,6 @@ Its words are a decision's own: open, decided, dropped, waiting longer than usua
 - [SKILL.md](skills/decision-record/SKILL.md): the workflow and every rule the validator enforces.
 - [references/log-format.md](skills/decision-record/references/log-format.md): the log format.
 
-Version 0.3.4. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).
+Version 0.3.5. Not yet run on a real team's data. Python 3.11 or later, standard library only, no network calls. MIT licence. Made by [Dacard](https://www.dacard.ai).
 
 Claude and Claude Code are trademarks of Anthropic, PBC. These skills are independent and not affiliated with or endorsed by Anthropic.

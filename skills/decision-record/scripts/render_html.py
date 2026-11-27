@@ -41,7 +41,7 @@ import svgkit as sk  # noqa: E402  (vendored, unchanged; see VENDORED.json)
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "vendor" / "template.html"
 STYLE = re.compile(r"<style>(.*?)</style>", re.S)
 NAME = "Decision record"  # the page prints its plain name; the code name sits in the engineers' fold
-MIN_FONT_PX = 11  # no text on the page prints smaller, at any width
+MIN_FONT_PX = 12  # no text on the page prints smaller, at any width
 
 # Layout for this page only. Everything else comes from the template's stylesheet and svgkit.CSS. The template paints
 # selection and the focus ring green, a status colour; this page sets both to ink.
@@ -57,14 +57,14 @@ main.solo{margin-left:0}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px 48px;align-items:start;margin-top:32px}
 .side{display:grid;gap:24px}
 .next{display:grid;gap:10px;border:1px solid var(--brass);border-radius:12px;padding:20px 22px;background:var(--brass-bg)}
-.next>b{font:400 11px/16px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--brass)}
+.next>b{font:400 12px/16px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--brass)}
 .next p{margin:0;font-size:16px;line-height:1.5;color:var(--t1)}
-.next .whom{display:flex;flex-wrap:wrap;gap:4px 24px;font:400 11.5px/18px var(--mono);color:var(--brass)}
-.next .whom i{font-style:normal;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-right:8px}
+.next .whom{display:flex;flex-wrap:wrap;gap:4px 24px;font:400 12px/18px var(--mono);color:var(--brass)}
+.next .whom i{font-style:normal;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-right:8px}
 .next .whom .d{color:var(--t2)}
 .figs{margin:0;display:grid}
 .figs>div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 16px;border-top:1px solid var(--line);padding:10px 0}
-.figs dt{font:400 11px/22px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+.figs dt{font:400 12px/22px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
 .figs dd{margin:0;font-size:13.5px;line-height:1.55;color:var(--t2)}
 .figs dd b{color:var(--t1);font-weight:500}
 .figs ul{margin:0;padding-left:16px}
@@ -72,7 +72,7 @@ main.solo{margin-left:0}
 .calls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--s1)}
 .call{padding:20px 24px 14px;box-shadow:-1px 0 0 var(--line),0 -1px 0 var(--line)}
 .call h3{margin:0 0 10px;font:600 18px/1.25 var(--display);text-transform:none;letter-spacing:-.02em;color:var(--t1)}
-.call h3 .rk{display:block;font:400 11px/16px var(--mono);letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.call h3 .rk{display:block;font:400 12px/16px var(--mono);letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
 .call .figs>div:first-child{border-top:0}
 .call details{margin-top:4px}
 .flag{font:400 12px/16px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--t1);margin-left:8px}
@@ -80,7 +80,7 @@ main.solo{margin-left:0}
 .ask:first-of-type{margin-top:0}
 .rec{color:var(--t2);font-size:13.5px;margin:0}
 .quote{margin:8px 0 0;font-size:13px;line-height:1.55;color:var(--t2)}
-.quote span{display:block;font:400 11px/18px var(--mono);color:var(--t3)}
+.quote span{display:block;font:400 12px/18px var(--mono);color:var(--t3)}
 .solo details{margin-top:20px}
 .solo details .tablewrap{margin-top:12px}
 .note{font-size:12.5px;line-height:1.6;color:var(--t2);margin:12px 0 0}
@@ -92,6 +92,7 @@ main.solo{margin-left:0}
 .solo h1,.solo .lede,.solo .next,.solo .slide p,.solo .slide li,.solo .sc-c,.sk figcaption{max-width:none}
 .solo .slide p,.solo .slide li,.solo .sc-c{text-wrap:pretty}
 .solo .cover .cols{grid-template-columns:minmax(0,1fr)}
+.nd{white-space:nowrap}
 """
 
 NUMBER_WORDS = ("No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve")
@@ -167,6 +168,28 @@ def stylesheet() -> str:
     except OSError:
         found = None
     return found.group(1) if found else ""
+
+
+ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+TAG = re.compile(r"(<[^>]*>)")
+RAW = re.compile(r"<(style|title|code|script)\b", re.I)
+
+
+def nowrap_dates(body: str) -> str:
+    """Wrap every ISO date in the page's text in white-space:nowrap, so "2026-09-07" never breaks at a hyphen.
+    Only text between tags changes: attributes (aria-label, title) and style, title, code and script keep theirs."""
+    parts = TAG.split(body)
+    skip = None
+    for i, part in enumerate(parts):
+        if i % 2:  # a tag
+            m = RAW.match(part)
+            if m:
+                skip = m.group(1).lower()
+            elif skip and part.lower().startswith(f"</{skip}"):
+                skip = None
+        elif not skip:
+            parts[i] = ISO_DATE.sub(r'<span class="nd">\g<0></span>', part)
+    return "".join(parts)
 
 
 def floor_fonts(css: str) -> str:
@@ -515,8 +538,8 @@ def page(key: dict[str, Any], record: dict[str, Any], title: str) -> str:
     return (
         '<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         f'<title>{e(title)}</title><style>{floor_fonts(stylesheet() + sk.CSS + sk.SCORECARD_CSS + PAGE_CSS)}</style></head><body><main class="solo">'
-        f"{cover}{opens}{decided}{read}{detail}"
-        '<p class="foot">Every figure is counted in code from the decision log, and every decider\'s words are checked against the source word for word. '
+        + nowrap_dates(f"{cover}{opens}{decided}{read}{detail}")
+        + '<p class="foot">Every figure is counted in code from the decision log, and every decider\'s words are checked against the source word for word. '
         "A decision is open or decided. Whether the project met its target is did-it-land's call, later in the loop.</p></main></body></html>\n"
     )
 

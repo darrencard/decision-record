@@ -4,7 +4,7 @@ description: Turns a Slack thread, meeting notes or a call transcript into a dec
 license: MIT. See LICENSE in the repository root.
 metadata:
   author: Dacard
-  version: "0.3.4"
+  version: "0.3.5"
 ---
 
 # Decision record
@@ -13,7 +13,7 @@ Writes one record per decision into a decisions log the team can read and diff, 
 
 Everything runs locally. The scripts are Python 3.11 or later, standard library only, and make no network calls.
 
-Words: say project, target and the landing brief (a one-page plan: what good looks like, by when, at what cost). If the user calls a project a bet, use their word.
+Words: say project, target and the landing brief (a one-page plan: what good looks like, by when, at what cost). Use the user's word, project or bet; the record key stays `bet`.
 
 ## The 3 rules that override everything else
 
@@ -80,7 +80,7 @@ Lead with the headline line the script prints. Then name each past-due or escala
 
 ## Landing Loop: write the decisions key (step 01, Decide)
 
-The loop keeps one project file per project, `landing/<bet>.json`. This skill reads the project's landing brief and the `portfolio` key (bet-portfolio-review's), and writes only the `decisions` key. It reads no key later in the record order (portfolio, decisions, spec, release, cost, evals, landed, signals, postmortem, board_qa), and keeps every other key exactly as it found it.
+The loop keeps one project file per project, `landing/<bet>.json`. This skill reads the project's landing brief and the `portfolio` key (`bet-portfolio-review`'s), and writes only the `decisions` key. It reads no key later in the record order (portfolio, decisions, spec, release, cost, evals, landed, signals, postmortem, board_qa), and keeps every other key exactly as it found it.
 
 ```bash
 python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop FOLDER --bet SLUG --html decisions.html --md decisions-read.md
@@ -88,7 +88,7 @@ python3 scripts/open_decisions.py --log decisions.md --as-of YYYY-MM-DD --loop F
 
 - With no record yet, add `--brief briefs/<bet>.md` to start one. The brief is read by the Leader Report's own parser (`scripts/landing_brief.py`, vendored byte-identical); a brief with any part missing is refused with every problem listed. Never write a brief parser or keyword list of your own.
 - A brief edited after the record opened (its sha256 changed), or an invalid log, is refused and nothing is written. Say so, and name the fix.
-- `rows` are the open decisions in the Leader Report's decision format, so its decision slide reads them unchanged. `decided` lists each call with the one person who made it. `brief.tested_by` names the decided record whose success signal is the brief's bar; if none does, it is listed under `gaps`. Without a `portfolio` key, that is a gap too: say "portfolio not read: run bet-portfolio-review first".
+- `rows` are the open decisions in the Leader Report's decision format, so its decision slide reads them unchanged. `decided` lists each call with the one person who made it. `brief.tested_by` names the decided record whose success signal is the brief's target; if none does, it is listed under `gaps`. Without a `portfolio` key, that is a gap too: say "portfolio not read: run `bet-portfolio-review` first".
 - Every figure (open, decided, waiting longer than usual, past due, oldest open, usual days to decide, days waiting and days to decide per record) carries value, unit, source, window and as_of, counted in code. Quote them; never work one out.
 - The page follows the Landing Loop sample anatomy: the verdict as its heading, a timeline with one row per decision from the day it was raised to the day a named person made it (rows longer than usual drawn heavy and tagged), one next step with its person in brass, then each call in two columns. The evidence ledger, key names and each decider's exact words fold. Public copy uses plain words (project, target, when to undo it, the large model). Brass marks only a person's call. It has no status colour, and says open or decided, never a project's status.
 

@@ -409,7 +409,7 @@ class Page(unittest.TestCase):
         self.assertEqual(at, sorted(at))
         self.assertIn("<h1>All five decisions are made; none is open. Two took longer than usual to decide.</h1>", body)
         self.assertEqual(body.count('<div class="next">'), 1, "one next step leads the page")
-        self.assertIn('<span class="o"><i>Decides</i>Head of Product, Quoting squad</span><span class="d"><i>When</i>was due 2026-11-15</span>', body)
+        self.assertIn('<span class="o"><i>Decides</i>Head of Product, Quoting squad</span><span class="d"><i>When</i>was due <span class="nd">2026-11-15</span></span>', body)
         self.assertNotIn("Book a call", body, "a sample is the skill's own output: no call to action")
 
     def test_a_shared_team_prints_once(self):
@@ -490,15 +490,24 @@ class Page(unittest.TestCase):
         for word in (" bet ", " bets ", "rollback", "roll back", "vendor-a", "tokens per task"):
             self.assertNotIn(word, md, word)
 
-    def test_no_text_smaller_than_11px(self):
+    def test_no_text_smaller_than_12px(self):
         css = "".join(re.findall(r"<style>(.*?)</style>", self.html, re.S))
         decls = re.findall(r"font(?:-size)?:[^;}]*", css)
         self.assertTrue(decls)
         sizes = [float(n) for d in decls for n in re.findall(r"(?<![/\d.])(\d+(?:\.\d+)?)px", d)]
-        self.assertGreaterEqual(min(sizes), 11, "a font size below 11px")
-        self.assertNotRegex(self.html, r'font-size="(\d|10)(\.\d+)?"', "an SVG label below 11px")
+        self.assertGreaterEqual(min(sizes), 12, "a font size below 12px")
+        self.assertNotRegex(self.html, r'font-size="(\d|1[01])(\.\d+)?"', "an SVG label below 12px")
         template = (SKILL / "assets" / "vendor" / "template.html").read_text(encoding="utf-8")
         self.assertIn("font:400 10px/16px var(--mono)", template, "the template stays as vendored; the page raises its sizes")
+
+    def test_dates_never_break(self):
+        self.assertIn(".nd{white-space:nowrap}", self.html)
+        body = re.sub(r'<span class="nd">\d{4}-\d{2}-\d{2}</span>', "", self.html.split("<body>", 1)[1])
+        self.assertEqual(re.findall(r"\d{4}-\d{2}-\d{2}", re.sub(r"<[^>]*>", " ", body)), [])
+        self.assertEqual(
+            render_html.nowrap_dates('<p title="2026-01-02">by 2026-01-02</p><code>2026-01-02</code>'),
+            '<p title="2026-01-02">by <span class="nd">2026-01-02</span></p><code>2026-01-02</code>',
+        )
 
     def test_header_prints_the_plain_name_and_the_fold_the_code_name(self):
         header = re.search(r'<header class="sk-hdr">.*?</header>', self.html, re.S).group(0)

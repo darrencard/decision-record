@@ -3,3 +3,4 @@ __pycache__/
 .ruff_cache/
 run/
 .DS_Store
+dist/
